@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Xassaid Admin — Gestion des Khassidas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.3/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --primary: #2D4A3E;
+      --primary-light: #3D5A4E;
+      --secondary: #C4A84D;
+      --bg: #F5F0E8;
+      --surface: #FFFFFF;
+      --text: #1A1A1A;
+      --text-muted: #8A8A8A;
+      --border: #E5E0D5;
+      --danger: #D9534F;
+      --success: #5CB85C;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ========== LOGIN ========== */
+    #loginOverlay {
+      position: fixed; inset: 0;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    #loginOverlay.hidden { display: none; }
+    .login-card {
+      background: var(--surface);
+      padding: 40px;
+      border-radius: var(--radius);
+      width: 360px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .login-card h1 { color: var(--primary); font-size: 28px; margin-bottom: 4px; }
+    .login-card .bismillah { color: var(--secondary); font-size: 20px; margin-bottom: 24px; }
+    .login-card input {
+      width: 100%; padding: 12px 16px;
+      border: 2px solid var(--border); border-radius: 8px;
+      font-size: 15px; margin-bottom: 16px; outline: none;
+      transition: border-color .2s;
+    }
+    .login-card input:focus { border-color: var(--secondary); }
+    .login-card button {
+      width: 100%; padding: 12px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    .login-card button:hover { background: var(--primary-light); }
+    .login-error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+
+    /* ========== HEADER ========== */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    }
+    header h1 { font-size: 20px; font-weight: 700; }
+    header h1 span { color: var(--secondary); }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .header-actions .stats {
+      font-size: 13px; color: rgba(255,255,255,.6);
+    }
+    .btn-logout {
+      padding: 6px 14px; background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+      color: #fff; cursor: pointer; font-size: 13px;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,.2); }
+
+    /* ========== TABS ========== */
+    .tabs {
+      display: flex; gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .tab {
+      padding: 14px 20px; cursor: pointer;
+      font-size: 14px; font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 3px solid transparent;
+      transition: all .2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--primary); border-bottom-color: var(--secondary); }
+
+    /* ========== MAIN ========== */
+    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ========== UPLOAD FORM ========== */
+    .upload-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .upload-card h2 {
+      font-size: 20px; margin-bottom: 24px;
+      color: var(--primary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      font-size: 13px; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 10px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px; outline: none;
+      transition: border-color .2s;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--secondary); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s;
+      background: #fafaf7;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--secondary);
+      background: rgba(196,168,77,.05);
+    }
+    .drop-zone.has-file {
+      border-color: var(--success);
+      background: rgba(92,184,92,.05);
+    }
+    .drop-zone .icon { font-size: 40px; margin-bottom: 8px; }
+    .drop-zone .main-text { font-size: 15px; font-weight: 600; color: var(--text); }
+    .drop-zone .sub-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .drop-zone .file-info {
+      margin-top: 12px; font-size: 14px; font-weight: 600; color: var(--success);
+    }
+    .drop-zone input[type="file"] { display: none; }
+
+    /* Audio preview */
+    .audio-preview {
+      margin-top: 16px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: var(--primary);
+      border-radius: 8px;
+      color: #fff;
+    }
+    .audio-preview audio { flex: 1; height: 36px; }
+    .audio-preview .duration {
+      font-size: 13px; color: var(--secondary); font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Files list (multi-upload) */
+    .files-list {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .file-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      transition: border-color .2s;
+    }
+    .file-item:hover { border-color: var(--secondary); }
+    .file-item.uploading {
+      border-color: var(--secondary);
+      background: rgba(196,168,77,.05);
+    }
+    .file-item.done {
+      border-color: var(--success);
+      background: rgba(92,184,92,.05);
+    }
+    .file-item.error {
+      border-color: var(--danger);
+      background: rgba(217,83,79,.05);
+    }
+    .file-item .file-icon { font-size: 24px; flex-shrink: 0; }
+    .file-item .file-details { flex: 1; min-width: 0; }
+    .file-item .file-name {
+      font-weight: 600; font-size: 14px; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-item .file-meta {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+    }
+    .file-item .file-title-input {
+      padding: 6px 10px; border: 1.5px solid var(--border);
+      border-radius: 6px; font-size: 13px; width: 100%;
+      margin-top: 6px; outline: none; font-family: inherit;
+    }
+    .file-item .file-title-input:focus { border-color: var(--secondary); }
+    .file-item .file-status {
+      font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    }
+    .file-item .file-status.pending { color: var(--text-muted); }
+    .file-item .file-status.uploading { color: var(--secondary); }
+    .file-item .file-status.done { color: var(--success); }
+    .file-item .file-status.error { color: var(--danger); }
+    .file-item .file-remove {
+      background: none; border: none; font-size: 18px;
+      cursor: pointer; color: var(--text-muted); padding: 4px;
+      border-radius: 4px; transition: all .2s; flex-shrink: 0;
+    }
+    .file-item .file-remove:hover { color: var(--danger); background: rgba(217,83,79,.1); }
+    .file-item .file-progress-mini {
+      height: 4px; background: var(--border); border-radius: 2px;
+      margin-top: 6px; overflow: hidden;
+    }
+    .file-item .file-progress-mini .fill {
+      height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 2px; transition: width .15s linear; width: 0%;
+    }
+    .file-item .file-progress-mini .fill.done {
+      background: var(--success);
+    }
+    .files-summary {
+      margin-top: 12px; padding: 10px 16px;
+      background: #fafaf7; border-radius: 8px;
+      font-size: 13px; color: var(--text-muted);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .files-summary strong { color: var(--text); }
+
+    /* Submit button */
+    .submit-row {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .btn {
+      padding: 12px 28px;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-primary {
+      background: var(--secondary);
+      color: var(--primary);
+    }
+    .btn-primary:hover { background: #d4b85d; }
+    .btn-primary:disabled {
+      opacity: .5; cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg); }
+    .btn-danger {
+      background: var(--danger); color: #fff;
+    }
+    .btn-danger:hover { opacity: .9; }
+    .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+    /* Progress bar */
+    .progress-container {
+      margin-top: 20px;
+      display: none;
+      background: #f9f8f4;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .progress-container.visible { display: block; }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .progress-percent {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .progress-status {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--secondary);
+    }
+    .progress-bar {
+      height: 20px;
+      background: var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 10px;
+      transition: width .15s linear;
+      width: 0%;
+      position: relative;
+      overflow: hidden;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 8px,
+        rgba(255,255,255,.15) 8px,
+        rgba(255,255,255,.15) 16px
+      );
+      animation: progressStripes .6s linear infinite;
+    }
+    @keyframes progressStripes {
+      0% { background-position: 0 0; }
+      100% { background-position: 22.6px 0; }
+    }
+    .progress-details {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .progress-details span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .progress-text {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 600;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    /* ========== KHASSIDA LIST ========== */
+    .list-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .list-header h2 {
+      font-size: 20px; color: var(--primary);
+    }
+    .search-input {
+      padding: 8px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px; outline: none;
+      width: 260px;
+    }
+    .search-input:focus { border-color: var(--secondary); }
+
+    .khassida-table {
+      width: 100%;
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .khassida-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .khassida-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-muted);
+      background: #fafaf7;
+      border-bottom: 1px solid var(--border);
+    }
+    .khassida-table td {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .khassida-table tr:last-child td { border-bottom: none; }
+    .khassida-table tr:hover { background: rgba(196,168,77,.03); }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-category {
+      background: rgba(45,74,62,.1);
+      color: var(--primary);
+    }
+    .badge-trending {
+      background: rgba(196,168,77,.15);
+      color: #9a8035;
+    }
+    /* Toggle buttons for Tendance / Nouveau */
+    .toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: all .2s;
+      margin-right: 4px;
+      margin-top: 4px;
+    }
+    .toggle-btn.trending-on {
+      background: rgba(196,168,77,.18);
+      color: #9a8035;
+      border-color: #C4A84D;
+    }
+    .toggle-btn.trending-off {
+      background: rgba(0,0,0,.04);
+      color: #bbb;
+      border-color: #ddd;
+    }
+    .toggle-btn.trending-off:hover {
+      background: rgba(196,168,77,.1);
+      color: #9a8035;
+      border-color: #C4A84D;
+    }
+    .toggle-btn.new-on {
+      background: rgba(78,205,196,.15);
+      color: #2a9d8f;
+      border-color: #4ECDC4;
+    }
+    .toggle-btn.new-off {
+      background: rgba(0,0,0,.04);
+      color: #bbb;
+      border-color: #ddd;
+    }
+    .toggle-btn.new-off:hover {
+      background: rgba(78,205,196,.1);
+      color: #2a9d8f;
+      border-color: #4ECDC4;
+    }
+    .toggle-btn:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+    .edit-btn-mini {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--secondary);
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .15s, background .2s;
+    }
+    .edit-btn-mini:hover {
+      transform: scale(1.15);
+      background: #9a8035;
+    }
+    .play-btn-mini {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .play-btn-mini:hover { background: var(--primary-light); }
+    .actions-cell { display: flex; gap: 6px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 14px 20px;
+      border-radius: 8px;
+      color: #fff; font-size: 14px; font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all .3s ease;
+      z-index: 1000;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+
+    /* Author modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 500;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 32px;
+      width: 400px;
+      max-width: 90vw;
+    }
+    .modal h3 { color: var(--primary); margin-bottom: 16px; }
+
+    /* Cover image upload */
+    .cover-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s;
+      background: #fafaf7;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .cover-zone:hover {
+      border-color: var(--secondary);
+      background: rgba(196,168,77,.05);
+    }
+    .cover-zone.has-cover {
+      border-color: var(--success);
+      background: rgba(92,184,92,.05);
+    }
+    .cover-zone .cover-preview {
+      width: 80px; height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      display: none;
+      border: 2px solid var(--border);
+    }
+    .cover-zone.has-cover .cover-preview { display: block; }
+    .cover-zone .cover-placeholder {
+      width: 80px; height: 80px;
+      border-radius: 8px;
+      background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; flex-shrink: 0;
+    }
+    .cover-zone.has-cover .cover-placeholder { display: none; }
+    .cover-zone .cover-info { text-align: left; flex: 1; }
+    .cover-zone .cover-info .main-text { font-size: 14px; font-weight: 600; color: var(--text); }
+    .cover-zone .cover-info .sub-text { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .cover-zone .cover-remove {
+      background: none; border: none; font-size: 18px;
+      cursor: pointer; color: var(--text-muted); padding: 6px;
+      border-radius: 4px; transition: all .2s; flex-shrink: 0;
+      display: none;
+    }
+    .cover-zone.has-cover .cover-remove { display: block; }
+    .cover-zone .cover-remove:hover { color: var(--danger); background: rgba(217,83,79,.1); }
+    .cover-zone input[type="file"] { display: none; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+      main { padding: 16px; }
+      .search-input { width: 160px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h1>Xassaid</h1>
+    <div class="bismillah">﷽</div>
+    <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">
+      Panneau d'administration
+    </p>
+    <input type="password" id="loginPassword" placeholder="Mot de passe admin" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button onclick="doLogin()">Se connecter</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<header>
+  <h1>🕌 <span>Xassaid</span> Admin</h1>
+  <div class="header-actions">
+    <span class="stats" id="headerStats">Chargement...</span>
+    <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
+  </div>
+</header>
+
+<!-- ============ TABS ============ -->
+<div class="tabs">
+  <div class="tab active" data-tab="upload" onclick="switchTab('upload')">📤 Ajouter</div>
+  <div class="tab" data-tab="list" onclick="switchTab('list')">📋 Khassidas</div>
+  <div class="tab" data-tab="authors" onclick="switchTab('authors')">👤 Auteurs</div>
+</div>
+
+<!-- ============ MAIN ============ -->
+<main>
+
+  <!-- Upload Panel -->
+  <div class="panel active" id="panel-upload">
+    <div class="upload-card">
+      <h2>📤 Ajouter un Khassida</h2>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">🎵</div>
+        <div class="main-text">Glissez vos fichiers audio ici</div>
+        <div class="sub-text">ou cliquez pour parcourir • MP3, WAV, OGG, M4A • <strong>Plusieurs fichiers possibles</strong></div>
+        <input type="file" id="fileInput" accept="audio/*" multiple onchange="handleFileSelect(event)" />
+      </div>
+
+      <!-- Files List -->
+      <div id="filesList" style="display:none; margin-top:16px;"></div>
+
+      <!-- Cover Image -->
+      <div class="cover-zone" id="coverZone" onclick="document.getElementById('coverInput').click()">
+        <div class="cover-placeholder">🖼️</div>
+        <img class="cover-preview" id="coverPreview" src="" alt="Cover" />
+        <div class="cover-info">
+          <div class="main-text" id="coverMainText">Image de couverture (optionnel)</div>
+          <div class="sub-text" id="coverSubText">JPEG, PNG ou WebP • Max 5 Mo</div>
+        </div>
+        <button type="button" class="cover-remove" onclick="event.stopPropagation(); removeCover()" title="Retirer">✖</button>
+        <input type="file" id="coverInput" accept="image/jpeg,image/png,image/webp" onchange="handleCoverSelect(event)" />
+      </div>
+
+      <!-- Form -->
+      <div class="form-grid" style="margin-top: 24px;">
+        <div class="form-group">
+          <label>Auteur (pour tous les fichiers) *</label>
+          <div style="display:flex;gap:8px;">
+            <select id="inputAuthor" style="flex:1">
+              <option value="">-- Sélectionner --</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" onclick="showNewAuthorModal(true)" title="Nouvel auteur" style="white-space:nowrap;">+ Nouveau</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Catégorie (pour tous les fichiers) *</label>
+          <select id="inputCategory">
+            <option value="">-- Sélectionner --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Marquer comme</label>
+          <div style="display: flex; gap: 16px; padding-top: 6px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 14px; text-transform: none; letter-spacing: 0; cursor: pointer;">
+              <input type="checkbox" id="inputTrending" /> ⭐ Tendance
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 14px; text-transform: none; letter-spacing: 0; cursor: pointer;">
+              <input type="checkbox" id="inputNew" checked /> 🆕 Nouveau
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-header">
+          <span class="progress-percent" id="progressPercent">0%</span>
+          <span class="progress-status" id="progressStatus">Préparation...</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-details">
+          <span id="progressLoaded">📦 0 / 0 Mo</span>
+          <span id="progressSpeed">⚡ -- Ko/s</span>
+          <span id="progressEta">⏱ --</span>
+        </div>
+        <div class="progress-text" id="progressText">Upload en cours...</div>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-row">
+        <button class="btn btn-secondary" onclick="resetForm()">Réinitialiser</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="uploadAllKhassidas()" disabled>
+          Publier les Khassidas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- List Panel -->
+  <div class="panel" id="panel-list">
+    <div class="list-header">
+      <h2>📋 Tous les Khassidas</h2>
+      <input class="search-input" type="text" placeholder="🔍 Rechercher..." oninput="filterList(this.value)" />
+    </div>
+    <div class="khassida-table">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Titre</th>
+            <th>Auteur</th>
+            <th>Catégorie</th>
+            <th>Durée</th>
+            <th>Écoutes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="khassidaList">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Authors Panel -->
+  <div class="panel" id="panel-authors">
+    <div class="list-header">
+      <h2>👤 Gérer les Auteurs</h2>
+      <button class="btn btn-primary btn-sm" onclick="showNewAuthorModal()">+ Nouvel Auteur</button>
+    </div>
+    <div class="khassida-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Type</th>
+            <th>Bio</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="authorsList">
+          <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- New Author Modal -->
+<div class="modal-overlay" id="authorModal">
+  <div class="modal">
+    <h3>Nouvel Auteur</h3>
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label>Nom *</label>
+      <input type="text" id="newAuthorName" placeholder="Ex: Cheikh Ahmadou Bamba" />
+    </div>
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label>Type</label>
+      <select id="newAuthorType">
+        <option value="author">Auteur</option>
+        <option value="reciter">Récitant</option>
+        <option value="both">Les deux</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom: 16px;">
+      <label>Bio (optionnel)</label>
+      <textarea id="newAuthorBio" rows="3" placeholder="Courte biographie..."></textarea>
+    </div>
+    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <button class="btn btn-secondary btn-sm" onclick="closeAuthorModal()">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="createAuthor()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Mini audio player for list -->
+<audio id="miniAudio" style="display:none"></audio>
+
+<script>
+// ==============================================================
+// CONFIG
+// ==============================================================
+const SUPABASE_URL = 'https://ojrcjwmixisecrdzbvpm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcmNqd21peGlzZWNyZHpidnBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjE0MDUsImV4cCI6MjA4NjgzNzQwNX0.-4B0jMfKaQcvEQmw3fJTkW5k-lWn013uRkFcjXHK-Ok';
+// SHA-256 hash de 'xassaid2025' — le mot de passe n'est plus en clair
+const ADMIN_PASSWORD_HASH = 'ac6616d8a62357e3fb813fd7fd720c95ca46c69e7ff36599a521fff64ded1db5';
+
+async function hashPassword(pw) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pw);
+  const buffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+if (typeof supabase === 'undefined' || !supabase.createClient) {
+  document.body.innerHTML = '<div style="padding:40px;text-align:center;color:red;"><h2>Erreur: Impossible de charger la librairie Supabase.</h2><p>Vérifiez votre connexion internet et rechargez la page.</p></div>';
+  throw new Error('Supabase library not loaded');
+}
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+    }
+  }
+});
+
+// State
+let selectedFiles = [];  // Array of { file, title, duration, status }
+let authors = [];
+let categories = [];
+let allKhassidas = [];
+let currentPlayingId = null;
+
+// ==============================================================
+// LOGIN
+// ==============================================================
+async function doLogin() {
+  const pw = document.getElementById('loginPassword').value;
+  const pwHash = await hashPassword(pw);
+  if (pwHash === ADMIN_PASSWORD_HASH) {
+    sessionStorage.setItem('xassaid-admin', 'true');
+    document.getElementById('loginOverlay').classList.add('hidden');
+    init();
+  } else {
+    document.getElementById('loginError').textContent = 'Mot de passe incorrect';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('xassaid-admin');
+  location.reload();
+}
+
+// Check session — script is at end of body, DOM is already ready
+if (sessionStorage.getItem('xassaid-admin') === 'true') {
+  document.getElementById('loginOverlay').classList.add('hidden');
+  init();
+}
+
+// ==============================================================
+// INIT
+// ==============================================================
+async function init() {
+  console.log('Xassaid Admin: init() started');
+  console.log('Supabase URL:', SUPABASE_URL);
+  console.log('Supabase client:', sb ? 'OK' : 'MISSING');
+  try {
+    await Promise.all([loadAuthors(), loadCategories()]);
+    loadKhassidas();
+    loadAuthorsList();
+    console.log('Xassaid Admin: init() completed successfully');
+  } catch (err) {
+    console.error('Xassaid Admin: init() error', err);
+    showToast('Erreur de chargement: ' + err.message, 'error');
+  }
+}
+
+// ==============================================================
+// TABS
+// ==============================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  
+  if (tab === 'list') loadKhassidas();
+  if (tab === 'authors') loadAuthorsList();
+}
+
+// ==============================================================
+// FILE HANDLING
+// ==============================================================
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('dragover');
+});
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) {
+    handleFiles(e.dataTransfer.files);
+  }
+});
+
+function handleFileSelect(event) {
+  if (event.target.files.length) {
+    handleFiles(event.target.files);
+  }
+}
+
+function handleFiles(fileList) {
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB (limite Supabase Free)
+  const newFiles = Array.from(fileList).filter(f => f.type.startsWith('audio/'));
+  if (newFiles.length === 0) {
+    showToast('Veuillez sélectionner des fichiers audio', 'error');
+    return;
+  }
+
+  let rejected = [];
+  newFiles.forEach(file => {
+    // Avoid duplicates
+    if (selectedFiles.some(sf => sf.file.name === file.name && sf.file.size === file.size)) return;
+
+    // Vérifier la taille (50MB max sur Supabase Free)
+    if (file.size > MAX_FILE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      rejected.push(`${file.name} (${sizeMB} Mo)`);
+      return;
+    }
+    
+    const titleGuess = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+    selectedFiles.push({
+      id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      file,
+      title: titleGuess,
+      duration: 0,
+      status: 'pending',  // pending | uploading | done | error
+      progress: 0,
+      error: null
+    });
+  });
+
+  if (rejected.length > 0) {
+    showToast(`⚠️ ${rejected.length} fichier(s) trop volumineux (max 50 Mo) :\n${rejected.join('\n')}`, 'error');
+  }
+
+  // Detect durations
+  selectedFiles.filter(sf => sf.duration === 0).forEach(sf => {
+    const audio = new Audio();
+    audio.src = URL.createObjectURL(sf.file);
+    audio.addEventListener('loadedmetadata', () => {
+      sf.duration = Math.round(audio.duration);
+      URL.revokeObjectURL(audio.src);
+      renderFilesList();
+    });
+  });
+
+  dropZone.classList.add('has-file');
+  renderFilesList();
+  validateForm();
+}
+
+// Cover image
+let selectedCover = null;
+
+function handleCoverSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    showToast('Format non supporté. Utilisez JPEG, PNG ou WebP.', 'error');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Image trop lourde (max 5 Mo)', 'error');
+    return;
+  }
+  
+  selectedCover = file;
+  const coverZone = document.getElementById('coverZone');
+  const preview = document.getElementById('coverPreview');
+  coverZone.classList.add('has-cover');
+  preview.src = URL.createObjectURL(file);
+  document.getElementById('coverMainText').textContent = file.name;
+  document.getElementById('coverSubText').textContent = formatSize(file.size);
+}
+
+function removeCover() {
+  selectedCover = null;
+  const coverZone = document.getElementById('coverZone');
+  coverZone.classList.remove('has-cover');
+  document.getElementById('coverPreview').src = '';
+  document.getElementById('coverInput').value = '';
+  document.getElementById('coverMainText').textContent = 'Image de couverture (optionnel)';
+  document.getElementById('coverSubText').textContent = 'JPEG, PNG ou WebP • Max 5 Mo';
+}
+
+function removeFile(id) {
+  selectedFiles = selectedFiles.filter(sf => sf.id !== id);
+  if (selectedFiles.length === 0) {
+    dropZone.classList.remove('has-file');
+    document.getElementById('filesList').style.display = 'none';
+  }
+  renderFilesList();
+  validateForm();
+}
+
+function updateFileTitle(id, value) {
+  const sf = selectedFiles.find(f => f.id === id);
+  if (sf) sf.title = value;
+  validateForm();
+}
+
+function formatDuration(secs) {
+  if (!secs) return '--:--';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function formatSize(bytes) {
+  return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+}
+
+function renderFilesList() {
+  const container = document.getElementById('filesList');
+  if (selectedFiles.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+
+  const totalSize = selectedFiles.reduce((s, sf) => s + sf.file.size, 0);
+
+  container.innerHTML = `
+    <div class="files-list">
+      ${selectedFiles.map((sf, i) => `
+        <div class="file-item ${sf.status}" id="file-${sf.id}">
+          <div class="file-icon">${sf.status === 'done' ? '✅' : sf.status === 'error' ? '❌' : sf.status === 'uploading' ? '⏳' : '🎵'}</div>
+          <div class="file-details">
+            <div class="file-name">${sf.file.name}</div>
+            <div class="file-meta">${formatSize(sf.file.size)} • ${formatDuration(sf.duration)}</div>
+            ${sf.status === 'pending' ? `
+              <input class="file-title-input" 
+                     type="text" 
+                     placeholder="Titre du khassida" 
+                     value="${sf.title.replace(/"/g, '&quot;')}"
+                     oninput="updateFileTitle('${sf.id}', this.value)" />
+            ` : ''}
+            ${sf.status === 'uploading' ? `
+              <div class="file-progress-mini"><div class="fill" id="fill-${sf.id}" style="width:${sf.progress}%"></div></div>
+            ` : ''}
+            ${sf.status === 'done' ? `
+              <div class="file-progress-mini"><div class="fill done" style="width:100%"></div></div>
+            ` : ''}
+            ${sf.error ? `<div style="font-size:12px;color:var(--danger);margin-top:4px;">❌ ${sf.error}</div>` : ''}
+          </div>
+          <div class="file-status ${sf.status}">
+            ${sf.status === 'pending' ? 'En attente' : sf.status === 'uploading' ? sf.progress + '%' : sf.status === 'done' ? 'Publié' : 'Erreur'}
+          </div>
+          ${sf.status === 'pending' ? `
+            <button class="file-remove" onclick="removeFile('${sf.id}')" title="Retirer">✖</button>
+          ` : ''}
+        </div>
+      `).join('')}
+    </div>
+    <div class="files-summary">
+      <span><strong>${selectedFiles.length}</strong> fichier${selectedFiles.length > 1 ? 's' : ''} • ${formatSize(totalSize)} au total</span>
+      <span>${selectedFiles.filter(f => f.status === 'done').length}/${selectedFiles.length} publié${selectedFiles.filter(f => f.status === 'done').length > 1 ? 's' : ''}</span>
+    </div>
+  `;
+}
+
+// ==============================================================
+// FORM VALIDATION
+// ==============================================================
+function validateForm() {
+  const valid = selectedFiles.length > 0
+    && selectedFiles.every(sf => sf.title.trim())
+    && document.getElementById('inputAuthor').value
+    && document.getElementById('inputCategory').value;
+  document.getElementById('submitBtn').disabled = !valid;
+  // Update button label
+  const count = selectedFiles.filter(f => f.status === 'pending').length;
+  if (count > 0) {
+    document.getElementById('submitBtn').textContent = count === 1 
+      ? 'Publier le Khassida' 
+      : `Publier ${count} Khassidas`;
+  }
+}
+
+// Listen for form changes
+document.addEventListener('input', validateForm);
+document.addEventListener('change', validateForm);
+
+// ==============================================================
+// UPLOAD (BATCH)
+// ==============================================================
+async function uploadAllKhassidas() {
+  const authorId = document.getElementById('inputAuthor').value;
+  const categoryId = document.getElementById('inputCategory').value;
+  const isTrending = document.getElementById('inputTrending').checked;
+  const isNew = document.getElementById('inputNew').checked;
+
+  const pending = selectedFiles.filter(f => f.status === 'pending');
+  if (pending.length === 0 || !authorId || !categoryId) {
+    showToast('Veuillez remplir tous les champs obligatoires', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = `Upload 0/${pending.length}...`;
+
+  const progress = document.getElementById('progressContainer');
+  const progressFill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+  progress.classList.add('visible');
+  progressFill.style.background = 'linear-gradient(90deg, var(--primary), var(--secondary))';
+
+  let completed = 0;
+  let errors = 0;
+
+  for (const sf of pending) {
+    sf.status = 'uploading';
+    sf.progress = 0;
+    renderFilesList();
+
+    // Update global progress
+    const globalPct = Math.round((completed / pending.length) * 100);
+    progressFill.style.width = globalPct + '%';
+    document.getElementById('progressPercent').textContent = globalPct + '%';
+    document.getElementById('progressStatus').textContent = `📤 ${completed + 1}/${pending.length}`;
+    progressText.textContent = `📤 Upload de "${sf.title}"...`;
+    document.getElementById('progressLoaded').textContent = `📦 Fichier ${completed + 1}/${pending.length}`;
+    document.getElementById('progressSpeed').textContent = '⚡ calcul...';
+    document.getElementById('progressEta').textContent = '⏱ calcul...';
+
+    try {
+      await uploadSingleFile(sf, authorId, categoryId, isTrending, isNew, pending.length, completed, selectedCover);
+      sf.status = 'done';
+      sf.progress = 100;
+      completed++;
+      submitBtn.textContent = `Upload ${completed}/${pending.length}...`;
+    } catch (err) {
+      console.error(`Error uploading ${sf.file.name}:`, err);
+      sf.status = 'error';
+      sf.error = err.message;
+      errors++;
+      completed++;
+    }
+    renderFilesList();
+  }
+
+  // Final state
+  progressFill.style.width = '100%';
+  document.getElementById('progressPercent').textContent = '100%';
+  if (errors === 0) {
+    document.getElementById('progressStatus').textContent = '✅ Tout est publié !';
+    progressFill.style.background = 'linear-gradient(90deg, #5CB85C, #4CAF50)';
+    progressText.textContent = `✅ ${pending.length} khassida${pending.length > 1 ? 's' : ''} publié${pending.length > 1 ? 's' : ''} avec succès !`;
+    showToast(`${pending.length} khassida${pending.length > 1 ? 's' : ''} ajouté${pending.length > 1 ? 's' : ''} !`, 'success');
+  } else {
+    document.getElementById('progressStatus').textContent = `⚠️ ${errors} erreur${errors > 1 ? 's' : ''}`;
+    progressFill.style.background = 'linear-gradient(90deg, #f0ad4e, #ec971f)';
+    progressText.textContent = `${completed - errors} réussi${completed - errors > 1 ? 's' : ''}, ${errors} échoué${errors > 1 ? 's' : ''}`;
+    showToast(`${errors} erreur${errors > 1 ? 's' : ''} pendant l'upload`, 'error');
+  }
+
+  setTimeout(() => {
+    selectedFiles = selectedFiles.filter(f => f.status !== 'done');
+    if (selectedFiles.length === 0) {
+      resetForm();
+    } else {
+      renderFilesList();
+      submitBtn.disabled = false;
+      submitBtn.textContent = `Réessayer ${selectedFiles.length} fichier${selectedFiles.length > 1 ? 's' : ''}`;
+    }
+    loadKhassidas();
+  }, 2500);
+}
+
+async function uploadSingleFile(sf, authorId, categoryId, isTrending, isNew, totalFiles, doneCount, coverFile) {
+  const title = sf.title.trim();
+  if (!title) throw new Error('Titre manquant');
+
+  // Step 1: Upload to Supabase Storage using chunked upload (bypasses proxy limit)
+  const timestamp = Date.now();
+  const ext = sf.file.name.split('.').pop();
+  const safeName = title.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '-')
+    .substring(0, 50);
+  const storagePath = `khassidas/${timestamp}-${safeName}.${ext}`;
+
+  const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunks
+  const file = sf.file;
+  const totalSize = file.size;
+  const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+  const startTime = Date.now();
+
+  function updateProgress(loaded) {
+    const filePct = Math.round((loaded / totalSize) * 100);
+    sf.progress = filePct;
+
+    const fillEl = document.getElementById(`fill-${sf.id}`);
+    if (fillEl) fillEl.style.width = filePct + '%';
+
+    const fileItem = document.getElementById(`file-${sf.id}`);
+    if (fileItem) {
+      const statusEl = fileItem.querySelector('.file-status');
+      if (statusEl) statusEl.textContent = filePct + '%';
+    }
+
+    const globalPct = Math.round(((doneCount + filePct / 100) / totalFiles) * 100);
+    document.getElementById('progressFill').style.width = globalPct + '%';
+    document.getElementById('progressPercent').textContent = globalPct + '%';
+
+    const elapsed = (Date.now() - startTime) / 1000;
+    const speed = elapsed > 0 ? loaded / elapsed : 0;
+    const remaining = speed > 0 ? (totalSize - loaded) / speed : 0;
+    const speedStr = speed > 1048576
+      ? (speed / 1048576).toFixed(1) + ' Mo/s'
+      : (speed / 1024).toFixed(0) + ' Ko/s';
+    const timeStr = remaining < 60
+      ? Math.ceil(remaining) + 's'
+      : Math.ceil(remaining / 60) + 'min';
+
+    const loadedMB = (loaded / (1024 * 1024)).toFixed(1);
+    const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
+    document.getElementById('progressLoaded').textContent = `📦 ${loadedMB} / ${totalMB} Mo`;
+    document.getElementById('progressSpeed').textContent = `⚡ ${speedStr}`;
+    document.getElementById('progressEta').textContent = `⏱ ~${timeStr}`;
+  }
+
+  if (totalSize <= CHUNK_SIZE) {
+    // Small file: standard upload
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) updateProgress(e.loaded);
+      });
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else {
+          let msg = 'Upload failed';
+          try { msg = JSON.parse(xhr.responseText)?.message || msg; } catch {}
+          reject(new Error(`${xhr.status}: ${msg}`));
+        }
+      });
+      xhr.addEventListener('error', () => reject(new Error('Erreur réseau')));
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/audio/${storagePath}`;
+      xhr.open('POST', uploadUrl);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_ANON_KEY);
+      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+      xhr.setRequestHeader('Content-Type', sf.file.type || 'audio/mpeg');
+      xhr.setRequestHeader('x-upsert', 'false');
+      xhr.send(sf.file);
+    });
+  } else {
+    // Large file: TUS resumable upload
+    // Upload-Metadata must use TUS format: key base64value,key base64value
+    const tusMeta = `bucketName ${btoa('audio')},objectName ${btoa(storagePath)},contentType ${btoa(sf.file.type || 'audio/mpeg')}`;
+
+    const createRes = await fetch(`${SUPABASE_URL}/storage/v1/upload/resumable`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY,
+        'Upload-Length': totalSize.toString(),
+        'Upload-Metadata': tusMeta,
+        'Tus-Resumable': '1.0.0',
+        'x-upsert': 'false',
+      },
+    });
+
+    if (createRes.status !== 201 && createRes.status !== 200) {
+      const errText = await createRes.text().catch(() => '');
+      throw new Error(`Impossible de créer la session d'upload (${createRes.status}): ${errText}`);
+    }
+
+    const tusUploadUrl = createRes.headers.get('Location');
+    if (!tusUploadUrl) throw new Error('Pas de Location header dans la réponse TUS');
+
+    // Upload chunks via PATCH
+    let offset = 0;
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, totalSize);
+      const chunk = file.slice(start, end);
+
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            updateProgress(start + e.loaded);
+          }
+        });
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 204) {
+            const newOffset = xhr.getResponseHeader('Upload-Offset');
+            if (newOffset) offset = parseInt(newOffset);
+            else offset = end;
+            resolve();
+          } else {
+            let msg = xhr.responseText || 'Chunk upload failed';
+            reject(new Error(`Chunk ${i+1}/${totalChunks} failed (${xhr.status}): ${msg}`));
+          }
+        });
+        xhr.addEventListener('error', () => reject(new Error(`Chunk ${i+1}: Erreur réseau`)));
+
+        xhr.open('PATCH', tusUploadUrl);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_ANON_KEY);
+        xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+        xhr.setRequestHeader('Upload-Offset', offset.toString());
+        xhr.setRequestHeader('Content-Type', 'application/offset+octet-stream');
+        xhr.setRequestHeader('Tus-Resumable', '1.0.0');
+        xhr.send(chunk);
+      });
+    }
+    
+    updateProgress(totalSize);
+  }
+
+  // Step 2: Get public URL
+  const { data: urlData } = sb.storage.from('audio').getPublicUrl(storagePath);
+  const audioUrl = urlData.publicUrl;
+
+  // Step 2b: Upload cover image if provided
+  let coverImageUrl = null;
+  if (coverFile) {
+    const coverExt = coverFile.name.split('.').pop();
+    const coverPath = `khassidas/${timestamp}-${safeName}.${coverExt}`;
+    const coverRes = await fetch(`${SUPABASE_URL}/storage/v1/object/covers/${coverPath}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': coverFile.type,
+        'x-upsert': 'false',
+      },
+      body: coverFile,
+    });
+    if (!coverRes.ok) {
+      console.warn('Cover upload failed:', coverRes.status);
+    } else {
+      const { data: coverUrlData } = sb.storage.from('covers').getPublicUrl(coverPath);
+      coverImageUrl = coverUrlData.publicUrl;
+    }
+  }
+
+  // Step 3: Insert into DB
+  const insertData = {
+    title,
+    author_id: authorId,
+    category_id: categoryId,
+    audio_url: audioUrl,
+    duration: sf.duration || 0,
+    is_trending: isTrending,
+    is_new: isNew,
+    play_count: 0,
+  };
+  if (coverImageUrl) insertData.cover_image_url = coverImageUrl;
+
+  const { error: insertErr } = await sb
+    .from('khassidas')
+    .insert(insertData)
+    .select()
+    .single();
+
+  if (insertErr) throw new Error(insertErr.message);
+}
+
+function resetForm() {
+  selectedFiles = [];
+  document.getElementById('inputAuthor').value = '';
+  document.getElementById('inputCategory').value = '';
+  document.getElementById('inputTrending').checked = false;
+  document.getElementById('inputNew').checked = true;
+  document.getElementById('fileInput').value = '';
+  removeCover();
+  
+  dropZone.classList.remove('has-file');
+  document.getElementById('filesList').style.display = 'none';
+  
+  document.getElementById('progressContainer').classList.remove('visible');
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressFill').style.background = 'linear-gradient(90deg, var(--primary), var(--secondary))';
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = 'Publier les Khassidas';
+}
+
+// ==============================================================
+// LOAD DATA
+// ==============================================================
+async function loadAuthors() {
+  const { data, error } = await sb.from('authors').select('*').order('name');
+  if (error) { console.error(error); return; }
+  authors = data;
+  
+  const select = document.getElementById('inputAuthor');
+  select.innerHTML = '<option value="">-- Sélectionner --</option>';
+  data.forEach(a => {
+    select.innerHTML += `<option value="${a.id}">${a.name}</option>`;
+  });
+}
+
+async function loadCategories() {
+  const { data, error } = await sb.from('categories').select('*').order('name');
+  if (error) { console.error(error); return; }
+  categories = data;
+  
+  const select = document.getElementById('inputCategory');
+  select.innerHTML = '<option value="">-- Sélectionner --</option>';
+  data.forEach(c => {
+    select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+  });
+}
+
+async function loadKhassidas() {
+  const { data, error } = await sb
+    .from('khassidas')
+    .select('*, author:authors(name), category:categories(name)')
+    .order('created_at', { ascending: false });
+  
+  if (error) { console.error(error); return; }
+  allKhassidas = data;
+  
+  document.getElementById('headerStats').textContent = `${data.length} khassidas`;
+  renderKhassidaList(data);
+}
+
+function renderKhassidaList(list) {
+  const tbody = document.getElementById('khassidaList');
+  
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Aucun khassida trouvé</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map((k, i) => {
+    const mins = Math.floor(k.duration / 60);
+    const secs = k.duration % 60;
+    const dur = `${mins}:${String(secs).padStart(2, '0')}`;
+    const trendBtn = `<button class="toggle-btn ${k.is_trending ? 'trending-on' : 'trending-off'}" onclick="toggleStatus('${k.id}', 'is_trending', ${!k.is_trending}, this)" title="${k.is_trending ? 'Retirer des tendances' : 'Mettre en tendance'}">${k.is_trending ? '⭐ Tendance' : '☆ Tendance'}</button>`;
+    const newBtn = `<button class="toggle-btn ${k.is_new ? 'new-on' : 'new-off'}" onclick="toggleStatus('${k.id}', 'is_new', ${!k.is_new}, this)" title="${k.is_new ? 'Retirer Nouveau' : 'Marquer comme Nouveau'}">${k.is_new ? '🆕 Nouveau' : '🔘 Nouveau'}</button>`;
+    
+    return `
+      <tr>
+        <td style="color:var(--text-muted)">${i + 1}</td>
+        <td>
+          <strong>${escHtml(k.title)}</strong>
+          <br>${trendBtn}${newBtn}
+        </td>
+        <td>${escHtml(k.author?.name || '—')}</td>
+        <td><span class="badge badge-category">${escHtml(k.category?.name || '—')}</span></td>
+        <td>${dur}</td>
+        <td>${k.play_count.toLocaleString()}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="play-btn-mini" onclick="playPreview('${k.audio_url}', '${k.id}')" title="Écouter">
+              ${currentPlayingId === k.id ? '⏸' : '▶'}
+            </button>
+            <button class="edit-btn-mini" onclick="renameKhassida('${k.id}', '${escAttr(k.title)}')" title="Modifier le titre">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteKhassida('${k.id}', '${escAttr(k.title)}')" title="Supprimer">🗑</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterList(query) {
+  const q = query.toLowerCase();
+  const filtered = allKhassidas.filter(k =>
+    k.title.toLowerCase().includes(q) ||
+    (k.author?.name || '').toLowerCase().includes(q) ||
+    (k.category?.name || '').toLowerCase().includes(q)
+  );
+  renderKhassidaList(filtered);
+}
+
+// ==============================================================
+// PLAY PREVIEW
+// ==============================================================
+function playPreview(url, id) {
+  const audio = document.getElementById('miniAudio');
+  if (currentPlayingId === id) {
+    audio.pause();
+    currentPlayingId = null;
+    renderKhassidaList(allKhassidas);
+    return;
+  }
+  audio.src = url;
+  audio.play();
+  currentPlayingId = id;
+  renderKhassidaList(allKhassidas);
+  
+  audio.onended = () => {
+    currentPlayingId = null;
+    renderKhassidaList(allKhassidas);
+  };
+}
+
+// ==============================================================
+// RENAME KHASSIDA
+// ==============================================================
+async function renameKhassida(id, currentTitle) {
+  const newTitle = prompt('Nouveau titre :', currentTitle);
+  if (newTitle === null || newTitle.trim() === '' || newTitle.trim() === currentTitle) return;
+
+  const { error } = await sb.from('khassidas').update({ title: newTitle.trim() }).eq('id', id);
+  if (error) {
+    showToast('Erreur: ' + error.message, 'error');
+    return;
+  }
+  const k = allKhassidas.find(x => x.id === id);
+  if (k) k.title = newTitle.trim();
+  showToast('✅ Titre modifié', 'success');
+  renderKhassidaList(allKhassidas);
+}
+
+// ==============================================================
+// TOGGLE TRENDING / NEW
+// ==============================================================
+async function toggleStatus(id, field, newValue, btnEl) {
+  if (btnEl) btnEl.disabled = true;
+  const { error } = await sb.from('khassidas').update({ [field]: newValue }).eq('id', id);
+  if (error) {
+    showToast(`Erreur: ${error.message}`, 'error');
+    if (btnEl) btnEl.disabled = false;
+    return;
+  }
+  // Update local state
+  const k = allKhassidas.find(x => x.id === id);
+  if (k) k[field] = newValue;
+  const label = field === 'is_trending' ? 'Tendance' : 'Nouveau';
+  showToast(`${newValue ? '✅' : '❌'} ${label} ${newValue ? 'activé' : 'désactivé'}`, 'success');
+  renderKhassidaList(allKhassidas);
+}
+
+// ==============================================================
+// DELETE
+// ==============================================================
+async function deleteKhassida(id, title) {
+  if (!confirm(`Supprimer "${title}" ?\n\nCette action est irréversible.`)) return;
+  
+  const { error } = await sb.from('khassidas').delete().eq('id', id);
+  if (error) {
+    showToast(`Erreur: ${error.message}`, 'error');
+    return;
+  }
+  
+  showToast(`"${title}" supprimé`, 'success');
+  loadKhassidas();
+}
+
+// ==============================================================
+// AUTHORS
+// ==============================================================
+async function loadAuthorsList() {
+  const { data, error } = await sb.from('authors').select('*').order('name');
+  if (error) return;
+  
+  const tbody = document.getElementById('authorsList');
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td><strong>${escHtml(a.name)}</strong></td>
+      <td><span class="badge badge-category">${a.type}</span></td>
+      <td style="color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(a.bio || '—')}</td>
+      <td>
+        <button class="btn btn-danger btn-sm" onclick="deleteAuthor('${a.id}', '${escAttr(a.name)}')" title="Supprimer">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+let authorModalFromUpload = false;
+
+function showNewAuthorModal(fromUpload = false) {
+  authorModalFromUpload = fromUpload;
+  document.getElementById('authorModal').classList.add('show');
+  document.getElementById('newAuthorName').focus();
+}
+
+function closeAuthorModal() {
+  document.getElementById('authorModal').classList.remove('show');
+  document.getElementById('newAuthorName').value = '';
+  document.getElementById('newAuthorBio').value = '';
+}
+
+async function createAuthor() {
+  const name = document.getElementById('newAuthorName').value.trim();
+  const type = document.getElementById('newAuthorType').value;
+  const bio = document.getElementById('newAuthorBio').value.trim();
+
+  if (!name) { showToast('Le nom est obligatoire', 'error'); return; }
+
+  const { data, error } = await sb.from('authors').insert({ name, type, bio: bio || null }).select().single();
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+
+  showToast(`Auteur "${name}" créé`, 'success');
+  const selectAfter = authorModalFromUpload && data ? data.id : null;
+  closeAuthorModal();
+  await loadAuthors();
+  loadAuthorsList();
+
+  // Auto-select the new author in the upload form
+  if (selectAfter) {
+    document.getElementById('inputAuthor').value = selectAfter;
+    validateForm();
+  }
+}
+
+async function deleteAuthor(id, name) {
+  if (!confirm(`Supprimer l'auteur "${name}" ?`)) return;
+  const { error } = await sb.from('authors').delete().eq('id', id);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  showToast(`Auteur supprimé`, 'success');
+  loadAuthors();
+  loadAuthorsList();
+}
+
+// ==============================================================
+// UTILS
+// ==============================================================
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function escHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function escAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+</script>
+
+</body>
+</html>
