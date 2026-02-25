@@ -603,6 +603,149 @@
       main { padding: 16px; }
       .search-input { width: 160px; }
     }
+
+    /* ========== CONFIG PANEL ========== */
+    .config-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+      margin-bottom: 20px;
+    }
+    .config-card h3 {
+      font-size: 16px; color: var(--primary);
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .config-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .config-row:last-child { border-bottom: none; }
+    .config-row .config-label {
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .config-row .config-desc {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+    }
+    .switch {
+      position: relative;
+      width: 48px; height: 26px;
+      cursor: pointer;
+    }
+    .switch input { display: none; }
+    .switch .slider {
+      position: absolute; inset: 0;
+      background: #ccc; border-radius: 26px;
+      transition: background .3s;
+    }
+    .switch .slider::before {
+      content: '';
+      position: absolute; top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: #fff; border-radius: 50%;
+      transition: transform .3s;
+    }
+    .switch input:checked + .slider { background: var(--success); }
+    .switch input:checked + .slider::before { transform: translateX(22px); }
+    .config-input {
+      padding: 8px 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px; outline: none;
+      width: 200px;
+      transition: border-color .2s;
+    }
+    .config-input:focus { border-color: var(--secondary); }
+    .config-save-row {
+      display: flex; justify-content: flex-end;
+      margin-top: 12px;
+    }
+
+    /* ========== CALENDAR PANEL ========== */
+    .event-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .event-form-grid .full { grid-column: 1 / -1; }
+    .event-card-mini {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 16px;
+      transition: border-color .2s;
+    }
+    .event-card-mini:hover { border-color: var(--secondary); }
+    .event-card-mini .event-icon-circle {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .event-card-mini .event-details { flex: 1; }
+    .event-card-mini .event-name {
+      font-size: 15px; font-weight: 700; color: var(--text);
+    }
+    .event-card-mini .event-meta {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+    }
+    .event-card-mini .event-badges { display: flex; gap: 6px; margin-top: 6px; }
+    .event-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .event-badge-cat {
+      background: rgba(45,74,62,.1); color: var(--primary);
+    }
+    .event-badge-importance {
+      background: rgba(196,168,77,.15); color: #9a8035;
+    }
+    .event-inactive {
+      opacity: .5;
+    }
+
+    /* ========== AUTHOR AVATAR ========== */
+    .author-card {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 16px;
+    }
+    .author-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+    }
+    .author-avatar-placeholder {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .author-avatar-upload {
+      display: inline-flex;
+      align-items: center; gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px; font-weight: 600;
+      background: rgba(196,168,77,.12);
+      color: #9a8035;
+      cursor: pointer;
+      transition: background .2s;
+      border: none;
+    }
+    .author-avatar-upload:hover {
+      background: rgba(196,168,77,.25);
+    }
   </style>
 </head>
 <body>
@@ -635,6 +778,8 @@
   <div class="tab active" data-tab="upload" onclick="switchTab('upload')">📤 Ajouter</div>
   <div class="tab" data-tab="list" onclick="switchTab('list')">📋 Khassidas</div>
   <div class="tab" data-tab="authors" onclick="switchTab('authors')">👤 Auteurs</div>
+  <div class="tab" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendrier</div>
+  <div class="tab" data-tab="config" onclick="switchTab('config')">⚙️ Config</div>
 </div>
 
 <!-- ============ MAIN ============ -->
@@ -761,6 +906,7 @@
       <table>
         <thead>
           <tr>
+            <th>Avatar</th>
             <th>Nom</th>
             <th>Type</th>
             <th>Bio</th>
@@ -768,9 +914,84 @@
           </tr>
         </thead>
         <tbody id="authorsList">
-          <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">Chargement...</td></tr>
+          <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">Chargement...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Calendar Panel -->
+  <div class="panel" id="panel-calendar">
+    <div class="list-header">
+      <h2>📅 Calendrier Mouride</h2>
+      <button class="btn btn-primary btn-sm" onclick="showNewEventModal()">+ Nouvel Événement</button>
+    </div>
+    <div id="eventsList">
+      <div style="text-align:center;padding:40px;color:var(--text-muted)">Chargement...</div>
+    </div>
+  </div>
+
+  <!-- Config Panel -->
+  <div class="panel" id="panel-config">
+    <h2 style="color:var(--primary);margin-bottom:20px;">⚙️ Configuration de l'application</h2>
+
+    <!-- Ramadan Config -->
+    <div class="config-card">
+      <h3>🌙 Ramadan</h3>
+      <div class="config-row">
+        <div>
+          <div class="config-label">Activer les fonctionnalités Ramadan</div>
+          <div class="config-desc">Bannière Nafila sur l'accueil, rappels, bouton dans le calendrier</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgRamadanEnabled" onchange="saveConfig('ramadan_enabled', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="config-row">
+        <div>
+          <div class="config-label">Date de début du Ramadan</div>
+          <div class="config-desc">Format: AAAA-MM-JJ</div>
+        </div>
+        <input type="date" class="config-input" id="cfgRamadanStart" onchange="saveConfig('ramadan_start_date', '\"' + this.value + '\"')">
+      </div>
+      <div class="config-row">
+        <div>
+          <div class="config-label">Date de fin (Korité)</div>
+          <div class="config-desc">Format: AAAA-MM-JJ</div>
+        </div>
+        <input type="date" class="config-input" id="cfgRamadanEnd" onchange="saveConfig('ramadan_end_date', '\"' + this.value + '\"')">
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="config-card">
+      <h3>🔔 Notifications</h3>
+      <div class="config-row">
+        <div>
+          <div class="config-label">Rappels Nafila</div>
+          <div class="config-desc">Envoyer des notifications pour les prières de chaque nuit</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgNafilaNotif" onchange="saveConfig('nafila_notifications_enabled', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Annonce -->
+    <div class="config-card">
+      <h3>📢 Annonce</h3>
+      <div class="config-row" style="flex-direction:column;align-items:stretch;">
+        <div style="margin-bottom:8px;">
+          <div class="config-label">Message d'annonce sur l'accueil</div>
+          <div class="config-desc">Laissez vide pour ne rien afficher</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" class="config-input" id="cfgAnnouncement" style="flex:1;width:auto;" placeholder="Ex: Magal de Touba dans 3 jours !">
+          <button class="btn btn-primary btn-sm" onclick="saveConfig('app_announcement', '\"' + document.getElementById('cfgAnnouncement').value + '\"')">Sauvegarder</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -779,7 +1000,8 @@
 <!-- New Author Modal -->
 <div class="modal-overlay" id="authorModal">
   <div class="modal">
-    <h3>Nouvel Auteur</h3>
+    <h3 id="authorModalTitle">Nouvel Auteur</h3>
+    <input type="hidden" id="editAuthorId" value="">
     <div class="form-group" style="margin-bottom: 12px;">
       <label>Nom *</label>
       <input type="text" id="newAuthorName" placeholder="Ex: Cheikh Ahmadou Bamba" />
@@ -792,13 +1014,101 @@
         <option value="both">Les deux</option>
       </select>
     </div>
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label>Avatar (optionnel)</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
+        <div class="author-avatar-placeholder" id="authorAvatarPreviewPlaceholder">?</div>
+        <img class="author-avatar" id="authorAvatarPreview" src="" alt="" style="display:none;">
+        <button type="button" class="author-avatar-upload" onclick="document.getElementById('authorAvatarInput').click()">📷 Choisir une photo</button>
+        <input type="file" id="authorAvatarInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="previewAuthorAvatar(event)">
+      </div>
+    </div>
     <div class="form-group" style="margin-bottom: 16px;">
       <label>Bio (optionnel)</label>
       <textarea id="newAuthorBio" rows="3" placeholder="Courte biographie..."></textarea>
     </div>
     <div style="display: flex; gap: 8px; justify-content: flex-end;">
       <button class="btn btn-secondary btn-sm" onclick="closeAuthorModal()">Annuler</button>
-      <button class="btn btn-primary btn-sm" onclick="createAuthor()">Créer</button>
+      <button class="btn btn-primary btn-sm" onclick="saveAuthor()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Event Modal -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal" style="width:520px;">
+    <h3 id="eventModalTitle">Nouvel Événement</h3>
+    <input type="hidden" id="editEventId" value="">
+    <div class="event-form-grid">
+      <div class="form-group">
+        <label>Titre *</label>
+        <input type="text" id="evTitle" placeholder="Grand Magal de Touba">
+      </div>
+      <div class="form-group">
+        <label>Titre arabe</label>
+        <input type="text" id="evTitleAr" placeholder="الماكال الأكبر" dir="rtl">
+      </div>
+      <div class="form-group">
+        <label>Date *</label>
+        <input type="date" id="evDate">
+      </div>
+      <div class="form-group">
+        <label>Date Hijri</label>
+        <input type="text" id="evHijriDate" placeholder="18 Safar 1448">
+      </div>
+      <div class="form-group">
+        <label>Catégorie *</label>
+        <select id="evCategory">
+          <option value="magal">Magal</option>
+          <option value="gamou">Gamou</option>
+          <option value="kazu">Kazu</option>
+          <option value="dahira">Dahira</option>
+          <option value="autre">Fête islamique</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Importance</label>
+        <select id="evImportance">
+          <option value="majeur">Majeur</option>
+          <option value="important">Important</option>
+          <option value="notable">Notable</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Icône (Ionicons)</label>
+        <select id="evIcon">
+          <option value="star">⭐ star</option>
+          <option value="moon">🌙 moon</option>
+          <option value="sunny">☀️ sunny</option>
+          <option value="heart">❤️ heart</option>
+          <option value="leaf">🍃 leaf</option>
+          <option value="gift">🎁 gift</option>
+          <option value="people">👥 people</option>
+          <option value="location">📍 location</option>
+          <option value="shield">🛡 shield</option>
+          <option value="flag">🚩 flag</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Couleur</label>
+        <input type="color" id="evColor" value="#C4A84D">
+      </div>
+      <div class="form-group full">
+        <label>Lieu (optionnel)</label>
+        <input type="text" id="evLocation" placeholder="Touba, Sénégal">
+      </div>
+      <div class="form-group full">
+        <label>Description courte</label>
+        <input type="text" id="evDescription" placeholder="Commémoration du départ en exil...">
+      </div>
+      <div class="form-group full">
+        <label>Description longue</label>
+        <textarea id="evLongDesc" rows="3" placeholder="Description détaillée de l'événement..."></textarea>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeEventModal()">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEvent()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -883,6 +1193,8 @@ async function init() {
     await Promise.all([loadAuthors(), loadCategories()]);
     loadKhassidas();
     loadAuthorsList();
+    loadConfig();
+    loadEvents();
     console.log('Xassaid Admin: init() completed successfully');
   } catch (err) {
     console.error('Xassaid Admin: init() error', err);
@@ -901,6 +1213,8 @@ function switchTab(tab) {
   
   if (tab === 'list') loadKhassidas();
   if (tab === 'authors') loadAuthorsList();
+  if (tab === 'calendar') loadEvents();
+  if (tab === 'config') loadConfig();
 }
 
 // ==============================================================
@@ -1577,60 +1891,156 @@ async function deleteKhassida(id, title) {
 }
 
 // ==============================================================
-// AUTHORS
+// AUTHORS (enhanced with avatar)
 // ==============================================================
+let selectedAuthorAvatar = null;
+
 async function loadAuthorsList() {
   const { data, error } = await sb.from('authors').select('*').order('name');
   if (error) return;
   
   const tbody = document.getElementById('authorsList');
-  tbody.innerHTML = data.map(a => `
-    <tr>
-      <td><strong>${escHtml(a.name)}</strong></td>
-      <td><span class="badge badge-category">${a.type}</span></td>
-      <td style="color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(a.bio || '—')}</td>
-      <td>
-        <button class="btn btn-danger btn-sm" onclick="deleteAuthor('${a.id}', '${escAttr(a.name)}')" title="Supprimer">🗑</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = data.map(a => {
+    const initials = a.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    const avatarHtml = a.avatar_url
+      ? `<img class="author-avatar" src="${a.avatar_url}" alt="${escHtml(a.name)}" />`
+      : `<div class="author-avatar-placeholder">${initials}</div>`;
+    return `
+      <tr>
+        <td>${avatarHtml}</td>
+        <td><strong>${escHtml(a.name)}</strong></td>
+        <td><span class="badge badge-category">${a.type}</span></td>
+        <td style="color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(a.bio || '—')}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="edit-btn-mini" onclick='editAuthor(${JSON.stringify(a).replace(/'/g, "&#39;")})' title="Modifier">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAuthor('${a.id}', '${escAttr(a.name)}')" title="Supprimer">🗑</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 let authorModalFromUpload = false;
 
 function showNewAuthorModal(fromUpload = false) {
   authorModalFromUpload = fromUpload;
+  document.getElementById('authorModalTitle').textContent = 'Nouvel Auteur';
+  document.getElementById('editAuthorId').value = '';
+  document.getElementById('newAuthorName').value = '';
+  document.getElementById('newAuthorType').value = 'author';
+  document.getElementById('newAuthorBio').value = '';
+  selectedAuthorAvatar = null;
+  document.getElementById('authorAvatarPreview').style.display = 'none';
+  document.getElementById('authorAvatarPreviewPlaceholder').style.display = 'flex';
+  document.getElementById('authorAvatarPreviewPlaceholder').textContent = '?';
   document.getElementById('authorModal').classList.add('show');
   document.getElementById('newAuthorName').focus();
+}
+
+function editAuthor(author) {
+  authorModalFromUpload = false;
+  document.getElementById('authorModalTitle').textContent = 'Modifier l\'auteur';
+  document.getElementById('editAuthorId').value = author.id;
+  document.getElementById('newAuthorName').value = author.name;
+  document.getElementById('newAuthorType').value = author.type;
+  document.getElementById('newAuthorBio').value = author.bio || '';
+  selectedAuthorAvatar = null;
+  if (author.avatar_url) {
+    document.getElementById('authorAvatarPreview').src = author.avatar_url;
+    document.getElementById('authorAvatarPreview').style.display = 'block';
+    document.getElementById('authorAvatarPreviewPlaceholder').style.display = 'none';
+  } else {
+    const initials = author.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('authorAvatarPreview').style.display = 'none';
+    document.getElementById('authorAvatarPreviewPlaceholder').style.display = 'flex';
+    document.getElementById('authorAvatarPreviewPlaceholder').textContent = initials;
+  }
+  document.getElementById('authorModal').classList.add('show');
+}
+
+function previewAuthorAvatar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Image trop lourde (max 5 Mo)', 'error');
+    return;
+  }
+  selectedAuthorAvatar = file;
+  document.getElementById('authorAvatarPreview').src = URL.createObjectURL(file);
+  document.getElementById('authorAvatarPreview').style.display = 'block';
+  document.getElementById('authorAvatarPreviewPlaceholder').style.display = 'none';
 }
 
 function closeAuthorModal() {
   document.getElementById('authorModal').classList.remove('show');
   document.getElementById('newAuthorName').value = '';
   document.getElementById('newAuthorBio').value = '';
+  document.getElementById('authorAvatarInput').value = '';
+  selectedAuthorAvatar = null;
 }
 
-async function createAuthor() {
+async function saveAuthor() {
+  const editId = document.getElementById('editAuthorId').value;
   const name = document.getElementById('newAuthorName').value.trim();
   const type = document.getElementById('newAuthorType').value;
   const bio = document.getElementById('newAuthorBio').value.trim();
 
   if (!name) { showToast('Le nom est obligatoire', 'error'); return; }
 
-  const { data, error } = await sb.from('authors').insert({ name, type, bio: bio || null }).select().single();
-  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  let avatarUrl = null;
+  // Upload avatar if selected
+  if (selectedAuthorAvatar) {
+    const timestamp = Date.now();
+    const ext = selectedAuthorAvatar.name.split('.').pop();
+    const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 30);
+    const avatarPath = `authors/${timestamp}-${safeName}.${ext}`;
+    
+    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/covers/${avatarPath}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': selectedAuthorAvatar.type,
+        'x-upsert': 'true',
+      },
+      body: selectedAuthorAvatar,
+    });
+    if (uploadRes.ok) {
+      const { data: urlData } = sb.storage.from('covers').getPublicUrl(avatarPath);
+      avatarUrl = urlData.publicUrl;
+    } else {
+      console.warn('Avatar upload failed:', uploadRes.status);
+    }
+  }
 
-  showToast(`Auteur "${name}" créé`, 'success');
-  const selectAfter = authorModalFromUpload && data ? data.id : null;
+  const authorData = { name, type, bio: bio || null };
+  if (avatarUrl) authorData.avatar_url = avatarUrl;
+
+  if (editId) {
+    // Update existing
+    const { error } = await sb.from('authors').update(authorData).eq('id', editId);
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+    showToast(`Auteur "${name}" mis à jour`, 'success');
+  } else {
+    // Create new
+    const { data, error } = await sb.from('authors').insert(authorData).select().single();
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+    showToast(`Auteur "${name}" créé`, 'success');
+    if (authorModalFromUpload && data) {
+      closeAuthorModal();
+      await loadAuthors();
+      loadAuthorsList();
+      document.getElementById('inputAuthor').value = data.id;
+      validateForm();
+      return;
+    }
+  }
+
   closeAuthorModal();
   await loadAuthors();
   loadAuthorsList();
-
-  // Auto-select the new author in the upload form
-  if (selectAfter) {
-    document.getElementById('inputAuthor').value = selectAfter;
-    validateForm();
-  }
 }
 
 async function deleteAuthor(id, name) {
@@ -1640,6 +2050,228 @@ async function deleteAuthor(id, name) {
   showToast(`Auteur supprimé`, 'success');
   loadAuthors();
   loadAuthorsList();
+}
+
+// ==============================================================
+// CONFIG
+// ==============================================================
+async function loadConfig() {
+  const { data, error } = await sb.from('app_config').select('key, value');
+  if (error) { console.error('loadConfig error:', error); return; }
+  
+  if (data) {
+    for (const row of data) {
+      switch (row.key) {
+        case 'ramadan_enabled':
+          document.getElementById('cfgRamadanEnabled').checked = row.value === true || row.value === 'true';
+          break;
+        case 'ramadan_start_date': {
+          const val = typeof row.value === 'string' ? row.value : String(row.value);
+          document.getElementById('cfgRamadanStart').value = val;
+          break;
+        }
+        case 'ramadan_end_date': {
+          const val = typeof row.value === 'string' ? row.value : String(row.value);
+          document.getElementById('cfgRamadanEnd').value = val;
+          break;
+        }
+        case 'nafila_notifications_enabled':
+          document.getElementById('cfgNafilaNotif').checked = row.value === true || row.value === 'true';
+          break;
+        case 'app_announcement': {
+          const val = typeof row.value === 'string' ? row.value : '';
+          document.getElementById('cfgAnnouncement').value = val;
+          break;
+        }
+      }
+    }
+  }
+}
+
+async function saveConfig(key, value) {
+  // Parse value properly for JSONB
+  let jsonValue;
+  try {
+    jsonValue = JSON.parse(value);
+  } catch {
+    jsonValue = value;
+  }
+
+  const { error } = await sb
+    .from('app_config')
+    .upsert({ key, value: jsonValue, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+  if (error) {
+    showToast(`Erreur: ${error.message}`, 'error');
+    return;
+  }
+  showToast(`✅ Configuration "${key}" mise à jour`, 'success');
+}
+
+// ==============================================================
+// CALENDAR EVENTS
+// ==============================================================
+let allEvents = [];
+
+async function loadEvents() {
+  const { data, error } = await sb
+    .from('mouride_events')
+    .select('*')
+    .order('date', { ascending: true });
+
+  if (error) { console.error('loadEvents error:', error); return; }
+  allEvents = data || [];
+  renderEventsList();
+}
+
+function renderEventsList() {
+  const container = document.getElementById('eventsList');
+  if (allEvents.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Aucun événement. Cliquez "+ Nouvel Événement" pour en ajouter.</div>';
+    return;
+  }
+
+  const iconMap = {
+    star: '⭐', moon: '🌙', sunny: '☀️', heart: '❤️', leaf: '🍃',
+    gift: '🎁', people: '👥', location: '📍', shield: '🛡', flag: '🚩'
+  };
+
+  container.innerHTML = allEvents.map(ev => {
+    const emoji = iconMap[ev.icon] || '📅';
+    const dateStr = new Date(ev.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    const daysUntil = Math.ceil((new Date(ev.date) - new Date()) / (1000*60*60*24));
+    const daysLabel = daysUntil === 0 ? "Aujourd'hui" : daysUntil > 0 ? `dans ${daysUntil}j` : `il y a ${Math.abs(daysUntil)}j`;
+    
+    return `
+      <div class="event-card-mini ${!ev.is_active ? 'event-inactive' : ''}">
+        <div class="event-icon-circle" style="background:${ev.color}15">
+          <span>${emoji}</span>
+        </div>
+        <div class="event-details">
+          <div class="event-name">${escHtml(ev.title)}</div>
+          <div class="event-meta">${dateStr} • ${ev.hijri_date || ''} • ${daysLabel}</div>
+          <div class="event-badges">
+            <span class="event-badge event-badge-cat">${ev.category}</span>
+            <span class="event-badge event-badge-importance">${ev.importance}</span>
+            ${!ev.is_active ? '<span class="event-badge" style="background:#f0ad4e22;color:#f0ad4e;">Inactif</span>' : ''}
+          </div>
+        </div>
+        <div class="actions-cell">
+          <button class="toggle-btn ${ev.is_active ? 'new-on' : 'new-off'}" onclick="toggleEventActive('${ev.id}', ${!ev.is_active})" title="${ev.is_active ? 'Désactiver' : 'Activer'}">
+            ${ev.is_active ? '✅ Actif' : '⏸ Inactif'}
+          </button>
+          <button class="edit-btn-mini" onclick='openEditEvent("${ev.id}")' title="Modifier">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteEvent('${ev.id}', '${escAttr(ev.title)}')" title="Supprimer">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showNewEventModal() {
+  document.getElementById('eventModalTitle').textContent = 'Nouvel Événement';
+  document.getElementById('editEventId').value = '';
+  document.getElementById('evTitle').value = '';
+  document.getElementById('evTitleAr').value = '';
+  document.getElementById('evDate').value = '';
+  document.getElementById('evHijriDate').value = '';
+  document.getElementById('evCategory').value = 'magal';
+  document.getElementById('evImportance').value = 'important';
+  document.getElementById('evIcon').value = 'star';
+  document.getElementById('evColor').value = '#C4A84D';
+  document.getElementById('evLocation').value = '';
+  document.getElementById('evDescription').value = '';
+  document.getElementById('evLongDesc').value = '';
+  document.getElementById('eventModal').classList.add('show');
+  document.getElementById('evTitle').focus();
+}
+
+function openEditEvent(id) {
+  const ev = allEvents.find(e => e.id === id);
+  if (!ev) return;
+  document.getElementById('eventModalTitle').textContent = 'Modifier l\'événement';
+  document.getElementById('editEventId').value = ev.id;
+  document.getElementById('evTitle').value = ev.title;
+  document.getElementById('evTitleAr').value = ev.title_ar || '';
+  document.getElementById('evDate').value = ev.date;
+  document.getElementById('evHijriDate').value = ev.hijri_date || '';
+  document.getElementById('evCategory').value = ev.category;
+  document.getElementById('evImportance').value = ev.importance;
+  document.getElementById('evIcon').value = ev.icon;
+  document.getElementById('evColor').value = ev.color;
+  document.getElementById('evLocation').value = ev.location || '';
+  document.getElementById('evDescription').value = ev.description || '';
+  document.getElementById('evLongDesc').value = ev.long_description || '';
+  document.getElementById('eventModal').classList.add('show');
+}
+
+function closeEventModal() {
+  document.getElementById('eventModal').classList.remove('show');
+}
+
+async function saveEvent() {
+  const editId = document.getElementById('editEventId').value;
+  const title = document.getElementById('evTitle').value.trim();
+  const date = document.getElementById('evDate').value;
+
+  if (!title || !date) {
+    showToast('Le titre et la date sont obligatoires', 'error');
+    return;
+  }
+
+  const color = document.getElementById('evColor').value;
+  const eventData = {
+    title,
+    title_ar: document.getElementById('evTitleAr').value.trim() || null,
+    date,
+    hijri_date: document.getElementById('evHijriDate').value.trim() || null,
+    category: document.getElementById('evCategory').value,
+    importance: document.getElementById('evImportance').value,
+    icon: document.getElementById('evIcon').value,
+    color,
+    gradient_start: color,
+    gradient_end: adjustColor(color, -30),
+    location: document.getElementById('evLocation').value.trim() || null,
+    description: document.getElementById('evDescription').value.trim() || null,
+    long_description: document.getElementById('evLongDesc').value.trim() || null,
+  };
+
+  if (editId) {
+    const { error } = await sb.from('mouride_events').update(eventData).eq('id', editId);
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+    showToast(`Événement "${title}" mis à jour`, 'success');
+  } else {
+    const { error } = await sb.from('mouride_events').insert(eventData);
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+    showToast(`Événement "${title}" créé`, 'success');
+  }
+
+  closeEventModal();
+  loadEvents();
+}
+
+async function toggleEventActive(id, newActive) {
+  const { error } = await sb.from('mouride_events').update({ is_active: newActive }).eq('id', id);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  showToast(`Événement ${newActive ? 'activé' : 'désactivé'}`, 'success');
+  loadEvents();
+}
+
+async function deleteEvent(id, title) {
+  if (!confirm(`Supprimer l'événement "${title}" ?`)) return;
+  const { error } = await sb.from('mouride_events').delete().eq('id', id);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  showToast(`Événement supprimé`, 'success');
+  loadEvents();
+}
+
+// Darken a hex color by amount
+function adjustColor(hex, amount) {
+  hex = hex.replace('#', '');
+  const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
+  const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount));
+  const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount));
+  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
 // ==============================================================
