@@ -778,6 +778,8 @@
   <div class="tab active" data-tab="upload" onclick="switchTab('upload')">📤 Ajouter</div>
   <div class="tab" data-tab="list" onclick="switchTab('list')">📋 Khassidas</div>
   <div class="tab" data-tab="authors" onclick="switchTab('authors')">👤 Auteurs</div>
+  <div class="tab" data-tab="categories" onclick="switchTab('categories')">🏷️ Catégories</div>
+  <div class="tab" data-tab="collections" onclick="switchTab('collections')">📁 Collections</div>
   <div class="tab" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendrier</div>
   <div class="tab" data-tab="config" onclick="switchTab('config')">⚙️ Config</div>
 </div>
@@ -931,6 +933,44 @@
     </div>
   </div>
 
+  <!-- Categories Panel -->
+  <div class="panel" id="panel-categories">
+    <div class="list-header">
+      <h2>🏷️ Gérer les Catégories</h2>
+      <button class="btn btn-secondary btn-sm" onclick="showCategoryKhassidas(null, 'Sans catégorie')" style="margin-right:8px;">📋 Sans catégorie</button>
+      <button class="btn btn-primary btn-sm" onclick="showNewCategoryModal()">+ Nouvelle Catégorie</button>
+    </div>
+    <div class="khassida-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Icône</th>
+            <th>Nom</th>
+            <th>Type</th>
+            <th>Couleur</th>
+            <th>En vedette</th>
+            <th>Khassidas</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="categoriesList">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Collections Panel -->
+  <div class="panel" id="panel-collections">
+    <div class="list-header">
+      <h2>📁 Gérer les Collections</h2>
+      <button class="btn btn-primary btn-sm" onclick="showNewCollectionModal()">+ Nouvelle Collection</button>
+    </div>
+    <div id="collectionsList">
+      <div style="text-align:center;padding:40px;color:var(--text-muted)">Chargement...</div>
+    </div>
+  </div>
+
   <!-- Config Panel -->
   <div class="panel" id="panel-config">
     <h2 style="color:var(--primary);margin-bottom:20px;">⚙️ Configuration de l'application</h2>
@@ -989,7 +1029,7 @@
         </div>
         <div style="display:flex;gap:8px;">
           <input type="text" class="config-input" id="cfgAnnouncement" style="flex:1;width:auto;" placeholder="Ex: Magal de Touba dans 3 jours !">
-          <button class="btn btn-primary btn-sm" onclick="saveConfig('app_announcement', '\"' + document.getElementById('cfgAnnouncement').value + '\"')">Sauvegarder</button>
+          <button class="btn btn-primary btn-sm" onclick="saveAnnouncement()">Sauvegarder</button>
         </div>
       </div>
     </div>
@@ -1113,6 +1153,154 @@
   </div>
 </div>
 
+<!-- Category Modal -->
+<div class="modal-overlay" id="categoryModal">
+  <div class="modal" style="width:480px;">
+    <h3 id="categoryModalTitle">Nouvelle Catégorie</h3>
+    <input type="hidden" id="editCategoryId" value="">
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label>Nom *</label>
+      <input type="text" id="catName" placeholder="Ex: Qaçida" />
+    </div>
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label>Description</label>
+      <textarea id="catDescription" rows="2" placeholder="Poèmes mystiques et spirituels"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div class="form-group">
+        <label>Type</label>
+        <select id="catType">
+          <option value="khassida">Khassida</option>
+          <option value="wakhtane">Wakhtane</option>
+          <option value="wird">Wird</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Icône (Ionicons)</label>
+        <select id="catIcon">
+          <option value="book">📖 book</option>
+          <option value="star">⭐ star</option>
+          <option value="moon">🌙 moon</option>
+          <option value="heart">❤️ heart</option>
+          <option value="hand-left">🤲 hand-left</option>
+          <option value="flag">🚩 flag</option>
+          <option value="document-text">📄 document-text</option>
+          <option value="mic">🎤 mic</option>
+          <option value="musical-notes">🎵 musical-notes</option>
+          <option value="flame">🔥 flame</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Couleur</label>
+        <input type="color" id="catColor" value="#2D4A3E">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;">
+        <input type="checkbox" id="catFeatured" /> ⭐ Mettre en vedette sur l'écran Explorer
+      </label>
+    </div>
+    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <button class="btn btn-secondary btn-sm" onclick="closeCategoryModal()">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCategory()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Khassidas Modal -->
+<div class="modal-overlay" id="categoryKhassidasModal">
+  <div class="modal" style="width:680px;max-height:85vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 id="catKhassidasTitle" style="margin:0;">Khassidas de la catégorie</h3>
+      <button class="file-remove" onclick="closeCategoryKhassidasModal()" style="font-size:18px;">✖</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+      <input type="text" id="catKhassidasSearch" placeholder="🔍 Rechercher un khassida..." oninput="filterCategoryKhassidas()" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;" />
+      <span id="catKhassidasCount" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
+    </div>
+    <div id="catKhassidasList" style="flex:1;overflow-y:auto;max-height:55vh;"></div>
+  </div>
+</div>
+
+<!-- Collection Modal -->
+<div class="modal-overlay" id="collectionModal">
+  <div class="modal" style="width:580px;">
+    <h3 id="collectionModalTitle">Nouvelle Collection</h3>
+    <input type="hidden" id="editCollectionId" value="">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div class="form-group">
+        <label>Nom *</label>
+        <input type="text" id="colName" placeholder="Ex: Ramadan 2026" />
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="colType">
+          <option value="curated">Sélection</option>
+          <option value="seasonal">Saisonnier</option>
+          <option value="event">Événement</option>
+          <option value="thematic">Thématique</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label>Description</label>
+      <textarea id="colDescription" rows="2" placeholder="Sélection spéciale pour le mois béni..."></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div class="form-group">
+        <label>Icône</label>
+        <select id="colIcon">
+          <option value="albums">📀 albums</option>
+          <option value="moon">🌙 moon</option>
+          <option value="star">⭐ star</option>
+          <option value="heart">❤️ heart</option>
+          <option value="flag">🚩 flag</option>
+          <option value="flame">🔥 flame</option>
+          <option value="gift">🎁 gift</option>
+          <option value="musical-notes">🎵 musical-notes</option>
+          <option value="people">👥 people</option>
+          <option value="sparkles">✨ sparkles</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Couleur</label>
+        <input type="color" id="colColor" value="#1A6B4A">
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;padding-top:8px;">
+          <input type="checkbox" id="colFeatured" /> ⭐ En vedette
+        </label>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div class="form-group">
+        <label>Date début (optionnel)</label>
+        <input type="date" id="colStartDate">
+      </div>
+      <div class="form-group">
+        <label>Date fin (optionnel)</label>
+        <input type="date" id="colEndDate">
+      </div>
+    </div>
+    <!-- Khassidas dans la collection -->
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Khassidas dans cette collection</label>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <select id="colKhassidaSelect" style="flex:1;">
+          <option value="">-- Ajouter un khassida --</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="addKhassidaToCollection()">+ Ajouter</button>
+      </div>
+      <div id="colItemsList" style="margin-top:10px;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top:16px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeCollectionModal()">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCollection()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1154,7 +1342,9 @@ let selectedFiles = [];  // Array of { file, title, duration, status }
 let authors = [];
 let categories = [];
 let allKhassidas = [];
+let allCollections = [];
 let currentPlayingId = null;
+let collectionItemsTemp = [];  // Temp items for collection modal
 
 // ==============================================================
 // LOGIN
@@ -1191,8 +1381,10 @@ async function init() {
   console.log('Supabase client:', sb ? 'OK' : 'MISSING');
   try {
     await Promise.all([loadAuthors(), loadCategories()]);
-    loadKhassidas();
+    await loadKhassidas();
     loadAuthorsList();
+    loadCategoriesList();
+    loadCollectionsList();
     loadConfig();
     loadEvents();
     console.log('Xassaid Admin: init() completed successfully');
@@ -1213,6 +1405,8 @@ function switchTab(tab) {
   
   if (tab === 'list') loadKhassidas();
   if (tab === 'authors') loadAuthorsList();
+  if (tab === 'categories') loadCategoriesList();
+  if (tab === 'collections') loadCollectionsList();
   if (tab === 'calendar') loadEvents();
   if (tab === 'config') loadConfig();
 }
@@ -2108,6 +2302,11 @@ async function saveConfig(key, value) {
   showToast(`✅ Configuration "${key}" mise à jour`, 'success');
 }
 
+function saveAnnouncement() {
+  const val = document.getElementById('cfgAnnouncement').value;
+  saveConfig('app_announcement', JSON.stringify(val));
+}
+
 // ==============================================================
 // CALENDAR EVENTS
 // ==============================================================
@@ -2292,6 +2491,440 @@ function escHtml(str) {
 
 function escAttr(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+// ==============================================================
+// CATEGORIES MANAGEMENT
+// ==============================================================
+async function loadCategoriesList() {
+  const { data, error } = await sb.from('categories').select('*').order('featured_order', { ascending: true }).order('name');
+  if (error) { console.error('loadCategoriesList error:', error); return; }
+
+  // Count khassidas per category
+  const counts = {};
+  allKhassidas.forEach(k => {
+    if (k.category_id) counts[k.category_id] = (counts[k.category_id] || 0) + 1;
+  });
+
+  const iconMap = { book: '📖', star: '⭐', moon: '🌙', heart: '❤️', 'hand-left': '🤲', flag: '🚩', 'document-text': '📄', mic: '🎤', 'musical-notes': '🎵', flame: '🔥' };
+
+  const tbody = document.getElementById('categoriesList');
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Aucune catégorie</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(c => {
+    const emoji = iconMap[c.icon] || '🏷️';
+    const featuredBtn = `<button class="toggle-btn ${c.is_featured ? 'trending-on' : 'trending-off'}" onclick="toggleCategoryFeatured('${c.id}', ${!c.is_featured})">${c.is_featured ? '⭐ Vedette' : '☆ Vedette'}</button>`;
+    return `
+      <tr>
+        <td style="font-size:20px;text-align:center;">${emoji}</td>
+        <td><strong>${escHtml(c.name)}</strong><br><span style="font-size:12px;color:var(--text-muted)">${escHtml(c.description || '')}</span></td>
+        <td><span class="badge badge-category">${c.type}</span></td>
+        <td><span style="display:inline-block;width:24px;height:24px;border-radius:6px;background:${c.color || '#ccc'};border:2px solid var(--border);"></span></td>
+        <td>${featuredBtn}</td>
+        <td><button class="toggle-btn trending-on" style="font-size:11px;" onclick="showCategoryKhassidas('${c.id}', '${escAttr(c.name)}')">${counts[c.id] || 0} ▸ Gérer</button></td>
+        <td>
+          <div class="actions-cell">
+            <button class="edit-btn-mini" onclick='editCategory(${JSON.stringify(c).replace(/'/g, "&#39;")})' title="Modifier">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCategory('${c.id}', '${escAttr(c.name)}')" title="Supprimer">🗑</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function showNewCategoryModal() {
+  document.getElementById('categoryModalTitle').textContent = 'Nouvelle Catégorie';
+  document.getElementById('editCategoryId').value = '';
+  document.getElementById('catName').value = '';
+  document.getElementById('catDescription').value = '';
+  document.getElementById('catType').value = 'khassida';
+  document.getElementById('catIcon').value = 'book';
+  document.getElementById('catColor').value = '#2D4A3E';
+  document.getElementById('catFeatured').checked = false;
+  document.getElementById('categoryModal').classList.add('show');
+  document.getElementById('catName').focus();
+}
+
+function editCategory(cat) {
+  document.getElementById('categoryModalTitle').textContent = 'Modifier la catégorie';
+  document.getElementById('editCategoryId').value = cat.id;
+  document.getElementById('catName').value = cat.name;
+  document.getElementById('catDescription').value = cat.description || '';
+  document.getElementById('catType').value = cat.type;
+  document.getElementById('catIcon').value = cat.icon || 'book';
+  document.getElementById('catColor').value = cat.color || '#2D4A3E';
+  document.getElementById('catFeatured').checked = !!cat.is_featured;
+  document.getElementById('categoryModal').classList.add('show');
+}
+
+function closeCategoryModal() {
+  document.getElementById('categoryModal').classList.remove('show');
+}
+
+async function saveCategory() {
+  const editId = document.getElementById('editCategoryId').value;
+  const name = document.getElementById('catName').value.trim();
+  if (!name) { showToast('Le nom est obligatoire', 'error'); return; }
+
+  const catData = {
+    name,
+    description: document.getElementById('catDescription').value.trim() || null,
+    type: document.getElementById('catType').value,
+    icon: document.getElementById('catIcon').value,
+    color: document.getElementById('catColor').value,
+    is_featured: document.getElementById('catFeatured').checked,
+  };
+
+  if (editId) {
+    const { error } = await sb.from('categories').update(catData).eq('id', editId);
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+    showToast(`Catégorie "${name}" mise à jour`, 'success');
+  } else {
+    const { error } = await sb.from('categories').insert(catData);
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+    showToast(`Catégorie "${name}" créée`, 'success');
+  }
+
+  closeCategoryModal();
+  await loadCategories();
+  loadCategoriesList();
+}
+
+async function toggleCategoryFeatured(id, newValue) {
+  const { error } = await sb.from('categories').update({ is_featured: newValue }).eq('id', id);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  showToast(`Vedette ${newValue ? 'activée' : 'désactivée'}`, 'success');
+  loadCategoriesList();
+}
+
+async function deleteCategory(id, name) {
+  if (!confirm(`Supprimer la catégorie "${name}" ?\n\nLes khassidas de cette catégorie ne seront pas supprimés.`)) return;
+  const { error } = await sb.from('categories').delete().eq('id', id);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  showToast('Catégorie supprimée', 'success');
+  await loadCategories();
+  loadCategoriesList();
+}
+
+// ==============================================================
+// CATEGORY KHASSIDAS MANAGEMENT (réassignation)
+// ==============================================================
+let currentCatKhassidasId = null;
+let currentCatKhassidasList = [];
+
+function showCategoryKhassidas(catId, catName) {
+  currentCatKhassidasId = catId;
+  document.getElementById('catKhassidasTitle').textContent = catId ? `📂 ${catName}` : '📋 Khassidas sans catégorie';
+  document.getElementById('catKhassidasSearch').value = '';
+
+  // Filter khassidas for this category
+  if (catId) {
+    currentCatKhassidasList = allKhassidas.filter(k => k.category_id === catId);
+  } else {
+    currentCatKhassidasList = allKhassidas.filter(k => !k.category_id);
+  }
+
+  renderCategoryKhassidas(currentCatKhassidasList);
+  document.getElementById('categoryKhassidasModal').classList.add('show');
+}
+
+function closeCategoryKhassidasModal() {
+  document.getElementById('categoryKhassidasModal').classList.remove('show');
+}
+
+function filterCategoryKhassidas() {
+  const q = document.getElementById('catKhassidasSearch').value.toLowerCase().trim();
+  const filtered = q
+    ? currentCatKhassidasList.filter(k => k.title.toLowerCase().includes(q) || (k.author?.name || '').toLowerCase().includes(q))
+    : currentCatKhassidasList;
+  renderCategoryKhassidas(filtered);
+}
+
+function renderCategoryKhassidas(list) {
+  const container = document.getElementById('catKhassidasList');
+  document.getElementById('catKhassidasCount').textContent = `${list.length} khassida${list.length > 1 ? 's' : ''}`;
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Aucun khassida dans cette catégorie</div>';
+    return;
+  }
+
+  const catOptions = categories.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+
+  container.innerHTML = list.map((k, i) => {
+    const dur = k.duration ? `${Math.floor(k.duration/60)}:${String(k.duration%60).padStart(2,'0')}` : '';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${i%2===0?'#fafaf7':'#fff'};border-radius:8px;margin-bottom:4px;">
+        <span style="font-weight:700;color:var(--secondary);width:24px;text-align:center;font-size:12px;">${i+1}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(k.title)}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${escHtml(k.author?.name || '?')} ${dur ? '• '+dur : ''}</div>
+        </div>
+        <select onchange="reassignKhassida('${k.id}', this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;min-width:130px;background:#fff;">
+          <option value="">Sans catégorie</option>
+          ${catOptions}
+        </select>
+      </div>
+    `;
+  }).join('');
+
+  // Set current value for each select
+  const selects = container.querySelectorAll('select');
+  list.forEach((k, i) => {
+    if (selects[i]) selects[i].value = k.category_id || '';
+  });
+}
+
+async function reassignKhassida(khassidaId, newCatId) {
+  const catValue = newCatId || null;
+  const { error } = await sb.from('khassidas').update({ category_id: catValue }).eq('id', khassidaId);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+
+  // Update local data
+  const k = allKhassidas.find(x => x.id === khassidaId);
+  if (k) {
+    k.category_id = catValue;
+    const newCat = categories.find(c => c.id === catValue);
+    k.category = newCat ? { name: newCat.name } : null;
+  }
+
+  const catName = catValue ? categories.find(c => c.id === catValue)?.name : 'Sans catégorie';
+  showToast(`Déplacé vers "${catName}"`, 'success');
+
+  // Refresh the list in the modal
+  if (currentCatKhassidasId) {
+    currentCatKhassidasList = allKhassidas.filter(x => x.category_id === currentCatKhassidasId);
+  } else {
+    currentCatKhassidasList = allKhassidas.filter(x => !x.category_id);
+  }
+  filterCategoryKhassidas();
+  loadCategoriesList();
+}
+
+// ==============================================================
+// COLLECTIONS MANAGEMENT
+// ==============================================================
+async function loadCollectionsList() {
+  const { data, error } = await sb.from('collections').select('*').order('featured_order').order('created_at', { ascending: false });
+  if (error) { console.error('loadCollectionsList error:', error); return; }
+  allCollections = data || [];
+  renderCollectionsList();
+}
+
+function renderCollectionsList() {
+  const container = document.getElementById('collectionsList');
+  if (allCollections.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Aucune collection. Cliquez "+ Nouvelle Collection" pour en créer.</div>';
+    return;
+  }
+
+  const typeLabels = { seasonal: '🌙 Saisonnier', thematic: '📚 Thématique', event: '📅 Événement', curated: '✨ Sélection' };
+
+  container.innerHTML = allCollections.map(col => {
+    const dateRange = col.start_date && col.end_date
+      ? `${new Date(col.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} → ${new Date(col.end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : 'Toujours visible';
+
+    return `
+      <div class="event-card-mini ${!col.is_active ? 'event-inactive' : ''}" style="border-left:4px solid ${col.color || '#2D4A3E'};">
+        <div class="event-icon-circle" style="background:${col.color}15;">
+          <span style="font-size:20px;">📁</span>
+        </div>
+        <div class="event-details">
+          <div class="event-name">${escHtml(col.name)}</div>
+          <div class="event-meta">${escHtml(col.description || 'Pas de description')} • ${dateRange}</div>
+          <div class="event-badges">
+            <span class="event-badge event-badge-cat">${typeLabels[col.type] || col.type}</span>
+            <span class="event-badge" style="background:rgba(45,74,62,.1);color:var(--primary);font-weight:700;">${col.items_count || 0} khassida${(col.items_count || 0) > 1 ? 's' : ''}</span>
+            ${col.is_featured ? '<span class="event-badge" style="background:rgba(196,168,77,.15);color:#9a8035;">⭐ En vedette</span>' : ''}
+            ${!col.is_active ? '<span class="event-badge" style="background:#f0ad4e22;color:#f0ad4e;">Inactif</span>' : ''}
+          </div>
+        </div>
+        <div class="actions-cell">
+          <button class="toggle-btn ${col.is_active ? 'new-on' : 'new-off'}" onclick="toggleCollectionActive('${col.id}', ${!col.is_active})">
+            ${col.is_active ? '✅ Actif' : '⏸ Inactif'}
+          </button>
+          <button class="edit-btn-mini" onclick="openEditCollection('${col.id}')" title="Modifier">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCollection('${col.id}', '${escAttr(col.name)}')" title="Supprimer">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showNewCollectionModal() {
+  document.getElementById('collectionModalTitle').textContent = 'Nouvelle Collection';
+  document.getElementById('editCollectionId').value = '';
+  document.getElementById('colName').value = '';
+  document.getElementById('colType').value = 'curated';
+  document.getElementById('colDescription').value = '';
+  document.getElementById('colIcon').value = 'albums';
+  document.getElementById('colColor').value = '#1A6B4A';
+  document.getElementById('colFeatured').checked = false;
+  document.getElementById('colStartDate').value = '';
+  document.getElementById('colEndDate').value = '';
+  collectionItemsTemp = [];
+  renderCollectionItems();
+  populateKhassidaSelect();
+  document.getElementById('collectionModal').classList.add('show');
+  document.getElementById('colName').focus();
+}
+
+async function openEditCollection(id) {
+  const col = allCollections.find(c => c.id === id);
+  if (!col) return;
+
+  document.getElementById('collectionModalTitle').textContent = 'Modifier la collection';
+  document.getElementById('editCollectionId').value = col.id;
+  document.getElementById('colName').value = col.name;
+  document.getElementById('colType').value = col.type;
+  document.getElementById('colDescription').value = col.description || '';
+  document.getElementById('colIcon').value = col.icon || 'albums';
+  document.getElementById('colColor').value = col.color || '#1A6B4A';
+  document.getElementById('colFeatured').checked = col.is_featured;
+  document.getElementById('colStartDate').value = col.start_date || '';
+  document.getElementById('colEndDate').value = col.end_date || '';
+
+  // Load existing items
+  const { data: items, error } = await sb
+    .from('collection_items')
+    .select('*, khassida:khassidas(id, title, author:authors(name))')
+    .eq('collection_id', id)
+    .order('position');
+
+  collectionItemsTemp = (items || []).map(it => ({
+    khassida_id: it.khassida_id,
+    title: it.khassida?.title || 'Inconnu',
+    author: it.khassida?.author?.name || '',
+  }));
+
+  renderCollectionItems();
+  populateKhassidaSelect();
+  document.getElementById('collectionModal').classList.add('show');
+}
+
+function closeCollectionModal() {
+  document.getElementById('collectionModal').classList.remove('show');
+  collectionItemsTemp = [];
+}
+
+function populateKhassidaSelect() {
+  const select = document.getElementById('colKhassidaSelect');
+  select.innerHTML = '<option value="">-- Ajouter un khassida --</option>';
+  allKhassidas
+    .filter(k => !collectionItemsTemp.some(it => it.khassida_id === k.id))
+    .forEach(k => {
+      select.innerHTML += `<option value="${k.id}">${escHtml(k.title)} — ${escHtml(k.author?.name || '?')}</option>`;
+    });
+}
+
+function addKhassidaToCollection() {
+  const select = document.getElementById('colKhassidaSelect');
+  const kId = select.value;
+  if (!kId) return;
+
+  const k = allKhassidas.find(x => x.id === kId);
+  if (!k) return;
+
+  collectionItemsTemp.push({
+    khassida_id: k.id,
+    title: k.title,
+    author: k.author?.name || '',
+  });
+
+  renderCollectionItems();
+  populateKhassidaSelect();
+}
+
+function removeCollectionItem(kId) {
+  collectionItemsTemp = collectionItemsTemp.filter(it => it.khassida_id !== kId);
+  renderCollectionItems();
+  populateKhassidaSelect();
+}
+
+function renderCollectionItems() {
+  const container = document.getElementById('colItemsList');
+  if (collectionItemsTemp.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Aucun khassida ajouté</div>';
+    return;
+  }
+  container.innerHTML = collectionItemsTemp.map((it, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${i % 2 === 0 ? '#fafaf7' : '#fff'};border-radius:8px;margin-bottom:4px;">
+      <span style="font-weight:700;color:var(--secondary);width:20px;text-align:center;">${i + 1}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(it.title)}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${escHtml(it.author)}</div>
+      </div>
+      <button class="file-remove" onclick="removeCollectionItem('${it.khassida_id}')" title="Retirer">✖</button>
+    </div>
+  `).join('');
+}
+
+async function saveCollection() {
+  const editId = document.getElementById('editCollectionId').value;
+  const name = document.getElementById('colName').value.trim();
+  if (!name) { showToast('Le nom est obligatoire', 'error'); return; }
+
+  const colData = {
+    name,
+    type: document.getElementById('colType').value,
+    description: document.getElementById('colDescription').value.trim() || null,
+    icon: document.getElementById('colIcon').value,
+    color: document.getElementById('colColor').value,
+    is_featured: document.getElementById('colFeatured').checked,
+    start_date: document.getElementById('colStartDate').value || null,
+    end_date: document.getElementById('colEndDate').value || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  let collectionId = editId;
+
+  if (editId) {
+    const { error } = await sb.from('collections').update(colData).eq('id', editId);
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  } else {
+    const { data, error } = await sb.from('collections').insert(colData).select().single();
+    if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+    collectionId = data.id;
+  }
+
+  // Sync items: delete all then re-insert
+  await sb.from('collection_items').delete().eq('collection_id', collectionId);
+
+  if (collectionItemsTemp.length > 0) {
+    const items = collectionItemsTemp.map((it, i) => ({
+      collection_id: collectionId,
+      khassida_id: it.khassida_id,
+      position: i + 1,
+    }));
+    const { error: itemsErr } = await sb.from('collection_items').insert(items);
+    if (itemsErr) {
+      console.error('Items insert error:', itemsErr);
+      showToast(`Collection sauvée mais erreur sur les items: ${itemsErr.message}`, 'error');
+    }
+  }
+
+  showToast(`Collection "${name}" ${editId ? 'mise à jour' : 'créée'}`, 'success');
+  closeCollectionModal();
+  loadCollectionsList();
+}
+
+async function toggleCollectionActive(id, newActive) {
+  const { error } = await sb.from('collections').update({ is_active: newActive, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  showToast(`Collection ${newActive ? 'activée' : 'désactivée'}`, 'success');
+  loadCollectionsList();
+}
+
+async function deleteCollection(id, name) {
+  if (!confirm(`Supprimer la collection "${name}" ?\n\nLes khassidas ne seront pas supprimés.`)) return;
+  const { error } = await sb.from('collections').delete().eq('id', id);
+  if (error) { showToast(`Erreur: ${error.message}`, 'error'); return; }
+  showToast('Collection supprimée', 'success');
+  loadCollectionsList();
 }
 </script>
 
