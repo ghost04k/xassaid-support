@@ -11,6 +11,7 @@
             background: #1a1a2e;
             color: #e0e0e0;
             line-height: 1.6;
+            -webkit-text-size-adjust: 100%;
         }
         .header {
             background: linear-gradient(135deg, #2D4A3E, #1a1a2e);
@@ -18,27 +19,61 @@
             padding: 60px 20px;
         }
         .header h1 { font-size: 2.5em; color: #C4A862; margin-bottom: 10px; }
-        .header p { font-size: 1.2em; color: #aaa; }
+        .header p { font-size: 1.2em; color: #aaa; max-width: 600px; margin: 0 auto; }
         .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
         .card {
             background: #16213e;
             border-radius: 12px;
             padding: 30px;
             margin-bottom: 20px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
-        .card h2 { color: #C4A862; margin-bottom: 15px; }
+        .card h2 { color: #C4A862; margin-bottom: 15px; font-size: 1.3em; }
         .card p, .card li { color: #ccc; margin-bottom: 10px; }
         .card ul { padding-left: 20px; }
         a { color: #C4A862; text-decoration: none; }
         a:hover { text-decoration: underline; }
         .footer {
             text-align: center;
-            padding: 30px;
+            padding: 30px 20px;
             color: #666;
             font-size: 0.9em;
         }
-        .nav { text-align: center; margin: 20px 0; }
-        .nav a { margin: 0 15px; font-size: 1.1em; }
+        .nav {
+            text-align: center;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            font-size: 1em;
+            padding: 8px 16px;
+            border: 1px solid rgba(196,168,98,.3);
+            border-radius: 8px;
+            transition: background .2s;
+        }
+        .nav a:hover { background: rgba(196,168,98,.1); text-decoration: none; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .header { padding: 40px 16px; }
+            .header h1 { font-size: 2em; }
+            .header p { font-size: 1em; }
+            .container { padding: 24px 16px; }
+            .card { padding: 20px 16px; border-radius: 10px; }
+            .card h2 { font-size: 1.15em; }
+        }
+        @media (max-width: 400px) {
+            .header h1 { font-size: 1.6em; }
+            .header p { font-size: 0.9em; }
+            .card { padding: 16px 14px; }
+            .card h2 { font-size: 1.05em; }
+            .card p, .card li { font-size: 0.95em; }
+            .nav a { font-size: 0.9em; padding: 6px 12px; }
+        }
     </style>
 </head>
 <body>
