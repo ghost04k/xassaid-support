@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Xassaid Admin — Gestion des Khassidas</title>
+  <title>Tewlu Admin — Gestion des Khassidas</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.3/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
   <style>
     :root {
       --primary: #2D4A3E;
@@ -262,6 +263,40 @@
       display: flex; justify-content: space-between; align-items: center;
     }
     .files-summary strong { color: var(--text); }
+
+    /* Compression overlay */
+    .compress-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
+    }
+    .compress-overlay.hidden { display: none; }
+    .compress-card {
+      background: var(--surface);
+      padding: 32px 40px;
+      border-radius: var(--radius);
+      width: 420px; max-width: 90vw;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .compress-card h3 { margin-bottom: 8px; color: var(--primary); font-size: 18px; }
+    .compress-card .compress-file-name {
+      font-size: 13px; color: var(--text-muted);
+      margin-bottom: 16px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .compress-progress-bar {
+      height: 8px; background: var(--border); border-radius: 4px;
+      overflow: hidden; margin-bottom: 12px;
+    }
+    .compress-progress-bar .fill {
+      height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 4px; transition: width .2s linear; width: 0%;
+    }
+    .compress-info {
+      font-size: 13px; color: var(--text-muted);
+    }
 
     /* Submit button */
     .submit-row {
@@ -528,6 +563,7 @@
     .toast.show { transform: translateY(0); opacity: 1; }
     .toast.success { background: var(--success); }
     .toast.error { background: var(--danger); }
+    .toast.info { background: var(--primary); }
 
     /* Author modal */
     .modal-overlay {
@@ -753,7 +789,7 @@
 <!-- ============ LOGIN ============ -->
 <div id="loginOverlay">
   <div class="login-card">
-    <h1>Xassaid</h1>
+    <h1>Tewlu</h1>
     <div class="bismillah">﷽</div>
     <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">
       Panneau d'administration
@@ -764,9 +800,19 @@
   </div>
 </div>
 
+<!-- ============ COMPRESSION OVERLAY ============ -->
+<div id="compressOverlay" class="compress-overlay hidden">
+  <div class="compress-card">
+    <h3>🗜️ Compression en cours…</h3>
+    <div class="compress-file-name" id="compressFileName">-</div>
+    <div class="compress-progress-bar"><div class="fill" id="compressProgressFill" style="width:0%"></div></div>
+    <div class="compress-info" id="compressInfo">Préparation…</div>
+  </div>
+</div>
+
 <!-- ============ HEADER ============ -->
 <header>
-  <h1>🕌 <span>Xassaid</span> Admin</h1>
+  <h1>🕌 <span>Tewlu</span> Admin</h1>
   <div class="header-actions">
     <span class="stats" id="headerStats">Chargement...</span>
     <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
@@ -1312,7 +1358,7 @@
 // CONFIG
 // ==============================================================
 const SUPABASE_URL = 'https://ojrcjwmixisecrdzbvpm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcmNqd21peGlzZWNyZHpidnBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjE0MDUsImV4cCI6MjA4NjgzNzQwNX0.-4B0jMfKaQcvEQmw3fJTkW5k-lWn013uRkFcjXHK-Ok';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcmNqd21peGlzZWNyZHpidnBtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTI2MTQwNSwiZXhwIjoyMDg2ODM3NDA1fQ.YAz2i1hkTJ-c1rS4lc0uq6Tjz88xvnWT09SVsB0Y1Pk';
 // SHA-256 hash de 'xassaid2025' — le mot de passe n'est plus en clair
 const ADMIN_PASSWORD_HASH = '6d4b841377596fd017f6a624ea92a561b25d58a4cebb4b17b07fbaacf11a8809';
 
@@ -1328,11 +1374,11 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   throw new Error('Supabase library not loaded');
 }
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   global: {
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      'apikey': SUPABASE_SERVICE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY
     }
   }
 });
@@ -1376,7 +1422,7 @@ if (sessionStorage.getItem('xassaid-admin') === 'true') {
 // INIT
 // ==============================================================
 async function init() {
-  console.log('Xassaid Admin: init() started');
+  console.log('Tewlu Admin: init() started');
   console.log('Supabase URL:', SUPABASE_URL);
   console.log('Supabase client:', sb ? 'OK' : 'MISSING');
   try {
@@ -1387,9 +1433,9 @@ async function init() {
     loadCollectionsList();
     loadConfig();
     loadEvents();
-    console.log('Xassaid Admin: init() completed successfully');
+    console.log('Tewlu Admin: init() completed successfully');
   } catch (err) {
-    console.error('Xassaid Admin: init() error', err);
+    console.error('Tewlu Admin: init() error', err);
     showToast('Erreur de chargement: ' + err.message, 'error');
   }
 }
@@ -1409,6 +1455,109 @@ function switchTab(tab) {
   if (tab === 'collections') loadCollectionsList();
   if (tab === 'calendar') loadEvents();
   if (tab === 'config') loadConfig();
+}
+
+// ==============================================================
+// AUDIO COMPRESSION (for files > 50 MB)
+// ==============================================================
+function showCompressUI(fileName, info) {
+  const overlay = document.getElementById('compressOverlay');
+  overlay.classList.remove('hidden');
+  document.getElementById('compressFileName').textContent = fileName;
+  document.getElementById('compressInfo').textContent = info || 'Préparation…';
+  document.getElementById('compressProgressFill').style.width = '0%';
+}
+function updateCompressUI(pct, info) {
+  document.getElementById('compressProgressFill').style.width = pct + '%';
+  if (info) document.getElementById('compressInfo').textContent = info;
+}
+function hideCompressUI() {
+  document.getElementById('compressOverlay').classList.add('hidden');
+}
+
+async function compressAudioFile(file, targetSizeMB = 48) {
+  showCompressUI(file.name, 'Décodage audio…');
+
+  const arrayBuffer = await file.arrayBuffer();
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  updateCompressUI(10, 'Décodage audio en cours…');
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  audioCtx.close();
+
+  const numChannels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const durationSec = audioBuffer.duration;
+
+  // Calculer le bitrate nécessaire pour atteindre la taille cible
+  const targetBytes = targetSizeMB * 1024 * 1024;
+  let bitrate = Math.floor((targetBytes * 8) / durationSec / 1000); // kbps
+  bitrate = Math.max(64, Math.min(bitrate, 192)); // clamp entre 64 et 192 kbps
+
+  updateCompressUI(20, `Compression MP3 à ${bitrate} kbps…`);
+
+  const channels = numChannels === 1 ? 1 : 2;
+  const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, bitrate);
+
+  const leftData = audioBuffer.getChannelData(0);
+  const rightData = channels === 2 ? audioBuffer.getChannelData(1) : null;
+
+  const totalSamples = leftData.length;
+  const sampleBlockSize = 1152;
+  const mp3Data = [];
+  let processedSamples = 0;
+
+  // Convertir Float32 → Int16
+  function floatTo16Bit(samples) {
+    const output = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    return output;
+  }
+
+  const leftI16 = floatTo16Bit(leftData);
+  const rightI16 = rightData ? floatTo16Bit(rightData) : null;
+
+  // Encoder par blocs avec mise à jour du progrès
+  for (let i = 0; i < totalSamples; i += sampleBlockSize) {
+    const leftChunk = leftI16.subarray(i, i + sampleBlockSize);
+    const rightChunk = rightI16 ? rightI16.subarray(i, i + sampleBlockSize) : null;
+
+    let mp3buf;
+    if (channels === 2) {
+      mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+    } else {
+      mp3buf = mp3encoder.encodeBuffer(leftChunk);
+    }
+    if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+    processedSamples += sampleBlockSize;
+    // Met à jour tous les ~2%
+    if (processedSamples % (sampleBlockSize * 100) < sampleBlockSize) {
+      const pct = 20 + Math.round((processedSamples / totalSamples) * 75);
+      updateCompressUI(Math.min(pct, 95), `Compression… ${Math.round((processedSamples / totalSamples) * 100)}%`);
+      await new Promise(r => setTimeout(r, 0)); // laisser l'UI se rafraîchir
+    }
+  }
+
+  const mp3End = mp3encoder.flush();
+  if (mp3End.length > 0) mp3Data.push(mp3End);
+
+  updateCompressUI(98, 'Finalisation…');
+
+  const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+  const compressedFile = new File([blob], file.name, { type: 'audio/mp3' });
+
+  const originalMB = (file.size / (1024 * 1024)).toFixed(1);
+  const compressedMB = (compressedFile.size / (1024 * 1024)).toFixed(1);
+  updateCompressUI(100, `Terminé ! ${originalMB} Mo → ${compressedMB} Mo`);
+
+  await new Promise(r => setTimeout(r, 600));
+  hideCompressUI();
+
+  return compressedFile;
 }
 
 // ==============================================================
@@ -1437,7 +1586,7 @@ function handleFileSelect(event) {
   }
 }
 
-function handleFiles(fileList) {
+async function handleFiles(fileList) {
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB (limite Supabase Free)
   const newFiles = Array.from(fileList).filter(f => f.type.startsWith('audio/'));
   if (newFiles.length === 0) {
@@ -1445,32 +1594,41 @@ function handleFiles(fileList) {
     return;
   }
 
-  let rejected = [];
-  newFiles.forEach(file => {
+  for (const file of newFiles) {
     // Avoid duplicates
-    if (selectedFiles.some(sf => sf.file.name === file.name && sf.file.size === file.size)) return;
+    if (selectedFiles.some(sf => sf.file.name === file.name && sf.file.size === file.size)) continue;
 
-    // Vérifier la taille (50MB max sur Supabase Free)
+    let finalFile = file;
+
+    // Si le fichier dépasse 50 Mo, le compresser automatiquement
     if (file.size > MAX_FILE_SIZE) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      rejected.push(`${file.name} (${sizeMB} Mo)`);
-      return;
+      showToast(`🗜️ Compression de "${file.name}" (${sizeMB} Mo)…`, 'info');
+      try {
+        finalFile = await compressAudioFile(file);
+        const newSizeMB = (finalFile.size / (1024 * 1024)).toFixed(1);
+        if (finalFile.size > MAX_FILE_SIZE) {
+          showToast(`⚠️ "${file.name}" reste trop volumineux après compression (${newSizeMB} Mo). Essayez un fichier plus court.`, 'error');
+          continue;
+        }
+        showToast(`✅ "${file.name}" compressé : ${sizeMB} Mo → ${newSizeMB} Mo`, 'success');
+      } catch (err) {
+        console.error('Compression error:', err);
+        showToast(`❌ Erreur compression "${file.name}" : ${err.message}`, 'error');
+        continue;
+      }
     }
     
-    const titleGuess = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+    const titleGuess = finalFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
     selectedFiles.push({
       id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-      file,
+      file: finalFile,
       title: titleGuess,
       duration: 0,
-      status: 'pending',  // pending | uploading | done | error
+      status: 'pending',
       progress: 0,
       error: null
     });
-  });
-
-  if (rejected.length > 0) {
-    showToast(`⚠️ ${rejected.length} fichier(s) trop volumineux (max 50 Mo) :\n${rejected.join('\n')}`, 'error');
   }
 
   // Detect durations
@@ -1780,8 +1938,8 @@ async function uploadSingleFile(sf, authorId, categoryId, isTrending, isNew, tot
       xhr.addEventListener('error', () => reject(new Error('Erreur réseau')));
       const uploadUrl = `${SUPABASE_URL}/storage/v1/object/audio/${storagePath}`;
       xhr.open('POST', uploadUrl);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_ANON_KEY);
-      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_SERVICE_KEY);
+      xhr.setRequestHeader('apikey', SUPABASE_SERVICE_KEY);
       xhr.setRequestHeader('Content-Type', sf.file.type || 'audio/mpeg');
       xhr.setRequestHeader('x-upsert', 'false');
       xhr.send(sf.file);
@@ -1794,8 +1952,8 @@ async function uploadSingleFile(sf, authorId, categoryId, isTrending, isNew, tot
     const createRes = await fetch(`${SUPABASE_URL}/storage/v1/upload/resumable`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY,
+        'apikey': SUPABASE_SERVICE_KEY,
         'Upload-Length': totalSize.toString(),
         'Upload-Metadata': tusMeta,
         'Tus-Resumable': '1.0.0',
@@ -1839,8 +1997,8 @@ async function uploadSingleFile(sf, authorId, categoryId, isTrending, isNew, tot
         xhr.addEventListener('error', () => reject(new Error(`Chunk ${i+1}: Erreur réseau`)));
 
         xhr.open('PATCH', tusUploadUrl);
-        xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_ANON_KEY);
-        xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_SERVICE_KEY);
+        xhr.setRequestHeader('apikey', SUPABASE_SERVICE_KEY);
         xhr.setRequestHeader('Upload-Offset', offset.toString());
         xhr.setRequestHeader('Content-Type', 'application/offset+octet-stream');
         xhr.setRequestHeader('Tus-Resumable', '1.0.0');
@@ -1863,8 +2021,8 @@ async function uploadSingleFile(sf, authorId, categoryId, isTrending, isNew, tot
     const coverRes = await fetch(`${SUPABASE_URL}/storage/v1/object/covers/${coverPath}`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY,
+        'apikey': SUPABASE_SERVICE_KEY,
         'Content-Type': coverFile.type,
         'x-upsert': 'false',
       },
@@ -2194,8 +2352,8 @@ async function saveAuthor() {
     const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/covers/${avatarPath}`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY,
+        'apikey': SUPABASE_SERVICE_KEY,
         'Content-Type': selectedAuthorAvatar.type,
         'x-upsert': 'true',
       },
